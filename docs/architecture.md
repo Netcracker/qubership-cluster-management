@@ -203,6 +203,117 @@ Istio contains base and istiod releases and a separate `base_values` block.
 MinIO contains minio and minio-bucket releases and a separate `bucket_values` block.
 Helmfile `needs` orders these releases. The workflow orders components: Istio → Argo CD → Kiali → MinIO → Headlamp.
 
+### Where Helm settings live
+
+There are three places to distinguish when looking for an application's configuration:
+
+| Location | Contents | When to edit it |
+|---|---|---|
+| `components/helmfile/<component>/helmfile.yaml.gotmpl` | Chart repository, release name, namespace, version reference, and values file references | Change how the component is installed |
+| `stacks/catalog/helmfile/<component>.yaml` | Shared chart version and chart values, under `components.helmfile.<component>.vars` | Change defaults for every stack importing this catalog |
+| `stacks/customers/<customer>/<cloud>/<stage>.yaml` | Imports and deployment-specific overrides of the same component vars | Change one customer/environment |
+
+The adjacent `values.yaml.gotmpl` files for Argo CD, Kiali, and Headlamp contain:
+
+```gotmpl
+{{ .Values.values | toYaml }}
+```
+
+That file is a bridge from resolved Atmos configuration to Helm chart values. It does not contain the application
+defaults itself. To find those defaults, open the matching file in `stacks/catalog/helmfile/`.
+Istio and MinIO have additional values templates for their multiple releases, as described above.
+
+For a concrete existing override, the [customer1 AWS staging manifest](../stacks/customers/customer1/aws/staging.yaml)
+sets Argo CD server replicas to two and its Service type to NodePort under
+`components.helmfile.argocd.vars.values.server`. The [shared Argo CD catalog](../stacks/catalog/helmfile/argocd.yaml)
+supplies one replica and ClusterIP by default. Atmos merges these maps before Helmfile runs.
+To change Kiali for only one customer/environment, use the equivalent
+`components.helmfile.kiali.vars.values` path in that customer's final manifest; changing the shared catalog affects all importers.
+
+### Why some .yaml files look like JSON
+
+The current Argo CD, Kiali, and MinIO Helmfile catalogs are serialized using JSON-style braces, quoted keys, and commas.
+They remain Atmos stack configuration files: the YAML parser accepts this JSON syntax and reads the same mappings,
+lists, strings, numbers, and booleans. Neither the `.yaml` extension nor the `catalog` directory makes them Kubernetes manifests.
+
+For example, this actual part of the Kiali catalog:
+
+```json
+"cr": {
+  "create": true,
+  "name": "kiali",
+  "namespace": "istio-system"
+}
+```
+
+has the same mapping content as this ordinary YAML excerpt:
+
+```yaml
+cr:
+  create: true
+  name: kiali
+  namespace: istio-system
+```
+
+These excerpts show only three keys; the complete catalog also contains `cr.spec` and the surrounding Atmos structure.
+JSON formatting is not required by Atmos or Helmfile and adds no extra inheritance or processing step.
+This documentation update leaves the existing configuration files unchanged.
+
+### Kiali: from catalog settings to a Custom Resource
+
+The Kiali Custom Resource is configured in [stacks/catalog/helmfile/kiali.yaml](../stacks/catalog/helmfile/kiali.yaml),
+at **`components.helmfile.kiali.vars.values.cr`**. There is currently no separate checked-in `kind: Kiali` manifest.
+
+| Catalog path, relative to `components.helmfile.kiali.vars` | Current value and purpose |
+|---|---|
+| `chart_version` | `2.33.0`: version of the `kiali/kiali-operator` Helm chart |
+| `values.cr.create` | `true`: asks the chart to include a Kiali Custom Resource |
+| `values.cr.name` | `kiali`: Custom Resource name |
+| `values.cr.namespace` | `istio-system`: namespace of the Custom Resource and managed Kiali instance |
+| `values.cr.spec.auth.strategy` | `anonymous`: laboratory authentication setting |
+| `values.cr.spec.deployment.view_only_mode` | `true`: Kiali UI uses view-only mode |
+| `values.cr.spec.deployment.service_type` | `NodePort`: type of the managed Kiali Service |
+| `values.cr.spec.server.node_port` | `30081`: Kiali HTTP NodePort |
+| `values.cr.spec.server.web_root` | `/`: web root |
+| `values.cr.spec.external_services` | Prometheus, Grafana, and tracing are disabled in the shared laboratory configuration |
+
+The complete creation chain is:
+
+```text
+stacks/customers/customer1/aws/staging.yaml
+  imports catalog/helmfile/kiali
+    → stacks/catalog/helmfile/kiali.yaml: components.helmfile.kiali.vars
+    → resolved Atmos component configuration, including any stack overrides
+    → components/helmfile/kiali/helmfile.yaml.gotmpl
+    → components/helmfile/kiali/values.yaml.gotmpl: .Values.values | toYaml
+    → kiali/kiali-operator chart 2.33.0: templates/kiali-cr.yaml
+    → Kiali Custom Resource named kiali in istio-system
+    → Kiali Operator reconciles the resource and creates the Kiali workload and Service
+```
+
+The Helm release and operator run in namespace **`kiali-operator`**; the Kiali Custom Resource and application
+are in **`istio-system`**. Helm renders and submits the Custom Resource; the operator acts on its specification.
+The chart also adds labels and default settings, so the rendered manifest contains more than the catalog excerpt.
+
+The same shared catalog/component chain is used by the active customer1 Azure and customer2 AWS stacks.
+Kiali therefore has one common definition with stack-specific overrides available, rather than a copy per cloud.
+During destruction, the workflows delete the Kiali Custom Resource before uninstalling its operator so cleanup can complete.
+
+### Inspect the resolved configuration and rendered manifest
+
+Run these commands from the repository root. Both were checked in this repository and do not apply resources:
+
+```powershell
+atmos describe component kiali -s customer1-aws-staging --process-functions=false --format yaml
+atmos helmfile template kiali -s customer1-aws-staging --skip-deps
+```
+
+The first command shows the resolved Atmos configuration: look for `vars.values.cr`.
+The second renders the Helm chart: look for `# Source: kiali-operator/templates/kiali-cr.yaml`,
+`kind: Kiali`, `metadata.name: kiali`, and `metadata.namespace: istio-system`.
+Helmfile rendering needs Helm, Helmfile, helm-diff, and chart availability as described in the local development guide.
+`--process-functions=false` is for configuration inspection; it leaves any Atmos function references unevaluated.
+
 ## Workflows and readiness
 
 Customer1 scenarios are defined in [aws.yaml](../workflows/customers/customer1/aws.yaml).

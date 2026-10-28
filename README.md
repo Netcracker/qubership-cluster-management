@@ -53,7 +53,14 @@ Cloud-specific implementations share logical names such as `network`, `kubernete
 Their capabilities and required inputs can differ between clouds.
 
 Helmfile components are shared across clouds: **Istio, Argo CD, Kiali, MinIO, and Headlamp**.
-Each component contains its Helmfile and adjacent values templates. Atmos supplies the selected stack's values:
+Each component contains its Helmfile and adjacent values templates. Atmos supplies the selected stack's values.
+
+The shared chart settings live under `stacks/catalog/helmfile/`, rather than directly in those values templates.
+Some catalog files currently use JSON syntax inside `.yaml` files; Atmos reads them as YAML mappings.
+This is a serialization choice, not another configuration layer or an Atmos requirement.
+For Kiali, the Custom Resource settings are in `components.helmfile.kiali.vars.values.cr`
+in [the Kiali catalog](stacks/catalog/helmfile/kiali.yaml). The operator chart renders the actual `kind: Kiali` manifest.
+See [where Helm settings live and how Kiali is created](docs/architecture.md#where-helm-settings-live) for the complete file chain.
 
 ```text
 Catalog defaults + customer/environment overrides
