@@ -6,6 +6,9 @@ clouds, environments, and components can be added without copying an entire depl
 
 Current deployments are local laboratories backed by Floci. Deployment to real cloud accounts has not been verified.
 
+**New machine? Start with [First run on Windows](docs/getting-started.md).** It covers tool installation,
+PATH, local settings, restricted provider downloads/proxies, the exact script/workflow sequence, and shutdown.
+
 ## Architecture
 
 Deployments are organized as **customer → cloud → environment**.
@@ -224,6 +227,7 @@ Keep execution dependencies explicit: create inputs before their consumers, and 
 
 ## Further documentation
 
+- [First run on Windows](docs/getting-started.md): install tools, configure provider access, start, deploy, verify, and destroy.
 - [Architecture reference](docs/architecture.md): Atmos discovery, imports, component contracts, state, Helmfile values, and AWS workflow internals. The Azure overview above reflects the newer local integration.
 - [Local development reference](docs/local-development.md): detailed AWS script responsibilities, prerequisites, readiness, access, and troubleshooting.
 - [Cloud preparation](docs/deployment.md): real-cloud preparation for Azure/GCP and load balancer inputs. Its inactive-Azure statements predate the local integration; use this README for current local Azure status.
