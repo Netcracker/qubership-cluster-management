@@ -1,0 +1,617 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" agent="Qubership architecture generator" type="device" pages="5">
+  <diagram id="page-1" name="01 - AWS architecture">
+    <mxGraphModel dx="1920" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="docker" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Docker Desktop / local/compose.yml&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#52667C;fillColor=#F8FAFD;strokeColor=#52667C;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="170" width="1540" height="890" as="geometry" />
+        </mxCell>
+        <mxCell id="vpc" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;AWS API resources: VPC 10.40.0.0/16&lt;/b&gt;&lt;div style=&quot;font-size:16px;color:#52667C;margin-top:6px&quot;&gt;Logical AWS configuration; actual packet transport uses the Docker network.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=17;fontColor=#2563EB;fillColor=#FFFFFF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="225" width="1210" height="815" as="geometry" />
+        </mxCell>
+        <mxCell id="eks" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;EKS API -&amp;gt; real k3s container&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;Shared Helmfile components, deployed inside Kubernetes&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#008778;fillColor=#F8FCFA;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="325" width="780" height="590" as="geometry" />
+        </mxCell>
+        <mxCell id="alb" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Application Load Balancer&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;HTTP listener :80&lt;br&gt;Routing by Host header&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="325" width="300" height="470" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-0" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.5;exitPerimeter=0;entryX=0.0;entryY=0.47368421052631576;entryPerimeter=0;" edge="1" parent="1" source="browser" target="mapping">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="290" y="465" as="sourcePoint" />
+            <mxPoint x="350" y="465" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-1" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.47368421052631576;exitPerimeter=0;entryX=0.0;entryY=0.2978723404255319;entryPerimeter=0;" edge="1" parent="1" source="mapping" target="alb">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="465" as="sourcePoint" />
+            <mxPoint x="650" y="465" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-2" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.5;exitPerimeter=0;entryX=0.0;entryY=0.4666666666666667;entryPerimeter=0;" edge="1" parent="1" source="rule_argo" target="svc_argo">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930" y="450" as="sourcePoint" />
+            <mxPoint x="1040" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-3" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.4666666666666667;exitPerimeter=0;entryX=0.0;entryY=0.4375;entryPerimeter=0;" edge="1" parent="1" source="svc_argo" target="app_argo">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1240" y="450" as="sourcePoint" />
+            <mxPoint x="1390" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-label-3" value="Service -&gt; Pod" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1260.5" y="422" width="109" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-4" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7852C5;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#7852C5;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.5;exitPerimeter=0;entryX=0.0;entryY=0.4666666666666667;entryPerimeter=0;" edge="1" parent="1" source="rule_kiali" target="svc_kiali">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930" y="545" as="sourcePoint" />
+            <mxPoint x="1040" y="545" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-5" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7852C5;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#7852C5;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.4666666666666667;exitPerimeter=0;entryX=0.0;entryY=0.4375;entryPerimeter=0;" edge="1" parent="1" source="svc_kiali" target="app_kiali">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1240" y="545" as="sourcePoint" />
+            <mxPoint x="1390" y="545" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-label-5" value="Service -&gt; Pod" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Segoe UI;fontSize=15;fontColor=#7852C5;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1260.5" y="517" width="109" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-6" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#008778;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#008778;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.5;exitPerimeter=0;entryX=0.0;entryY=0.4666666666666667;entryPerimeter=0;" edge="1" parent="1" source="rule_minio" target="svc_minio">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930" y="640" as="sourcePoint" />
+            <mxPoint x="1040" y="640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-7" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#008778;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#008778;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.4666666666666667;exitPerimeter=0;entryX=0.0;entryY=0.4375;entryPerimeter=0;" edge="1" parent="1" source="svc_minio" target="app_minio">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1240" y="640" as="sourcePoint" />
+            <mxPoint x="1390" y="640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-label-7" value="Service -&gt; Pod" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Segoe UI;fontSize=15;fontColor=#008778;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1260.5" y="612" width="109" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-8" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#AD6200;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#AD6200;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.5;exitPerimeter=0;entryX=0.0;entryY=0.4666666666666667;entryPerimeter=0;" edge="1" parent="1" source="rule_headlamp" target="svc_headlamp">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="930" y="735" as="sourcePoint" />
+            <mxPoint x="1040" y="735" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-9" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#AD6200;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#AD6200;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.4666666666666667;exitPerimeter=0;entryX=0.0;entryY=0.4375;entryPerimeter=0;" edge="1" parent="1" source="svc_headlamp" target="app_headlamp">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1240" y="735" as="sourcePoint" />
+            <mxPoint x="1390" y="735" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-label-9" value="Service -&gt; Pod" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Segoe UI;fontSize=15;fontColor=#AD6200;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1260.5" y="707" width="109" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-10" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#AD6200;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#AD6200;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.47619047619047616;exitPerimeter=0;entryX=0.0;entryY=0.47619047619047616;entryPerimeter=0;" edge="1" parent="1" source="publish" target="nexus">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="915" as="sourcePoint" />
+            <mxPoint x="650" y="915" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="title" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;AWS local architecture: from browser to application&lt;/b&gt;&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=32;fontColor=#14263D;" vertex="1" parent="1">
+          <mxGeometry x="60" y="35" width="1800" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;customer1-aws-staging | resource prefix: customer1-staging | Floci emulates AWS; k3s runs real applications&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=18;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="95" width="1800" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="browser" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Browser&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;argocd.localhost&lt;br&gt;kiali.localhost&lt;br&gt;minio.localhost&lt;br&gt;headlamp.localhost&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#52667C;fillColor=#F3F6FA;strokeColor=#52667C;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="370" width="230" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="mapping" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Published HTTP port&lt;/b&gt;&lt;div style=&quot;font-size:16px;color:#52667C;margin-top:6px&quot;&gt;127.0.0.1:80 -&amp;gt; floci:80&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=17;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="420" width="220" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="rule_argo" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;argocd.localhost&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="670" y="420" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="svc_argo" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;NodePort Service&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;30080&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="415" width="200" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="app_argo" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Argo CD&lt;/b&gt;&lt;div style=&quot;font-size:16px;color:#52667C;margin-top:6px&quot;&gt;argocd | 2 server replicas&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=17;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="415" width="370" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rule_kiali" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;kiali.localhost&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#7852C5;fillColor=#F3EEFC;strokeColor=#7852C5;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="670" y="515" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="svc_kiali" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;NodePort Service&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;30081&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#7852C5;fillColor=#F3EEFC;strokeColor=#7852C5;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="510" width="200" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="app_kiali" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Kiali&lt;/b&gt;&lt;div style=&quot;font-size:16px;color:#52667C;margin-top:6px&quot;&gt;istio-system | operator-managed&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=17;fontColor=#7852C5;fillColor=#F3EEFC;strokeColor=#7852C5;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="510" width="370" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rule_minio" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;minio.localhost&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="670" y="610" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="svc_minio" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;NodePort Service&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;30082&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="605" width="200" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="app_minio" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;MinIO Console&lt;/b&gt;&lt;div style=&quot;font-size:16px;color:#52667C;margin-top:6px&quot;&gt;storage | S3 API on :9000&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=17;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="605" width="370" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rule_headlamp" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;headlamp.localhost&lt;/b&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#AD6200;fillColor=#FFF5E6;strokeColor=#AD6200;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="670" y="705" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="svc_headlamp" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;NodePort Service&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;30083&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#AD6200;fillColor=#FFF5E6;strokeColor=#AD6200;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="700" width="200" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="app_headlamp" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Headlamp&lt;/b&gt;&lt;div style=&quot;font-size:16px;color:#52667C;margin-top:6px&quot;&gt;headlamp | included in workflow&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=17;fontColor=#AD6200;fillColor=#FFF5E6;strokeColor=#AD6200;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="700" width="370" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="istio" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Istio&lt;/b&gt;&lt;div style=&quot;font-size:16px;color:#52667C;margin-top:6px&quot;&gt;CRDs -&amp;gt; istiod&lt;br&gt;No ingress gateway installed&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=17;fontColor=#7852C5;fillColor=#F3EEFC;strokeColor=#7852C5;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="810" width="330" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="storage" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;MinIO&lt;/b&gt;&lt;div style=&quot;font-size:16px;color:#52667C;margin-top:6px&quot;&gt;Secret -&amp;gt; Job -&amp;gt; demo bucket&lt;br&gt;Persistence disabled (emptyDir)&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=17;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="810" width="370" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="api" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;AWS API :4566&lt;/b&gt;&lt;div style=&quot;font-size:16px;color:#52667C;margin-top:6px&quot;&gt;Terraform / AWS CLI -&amp;gt;&lt;br&gt;Floci&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=17;fontColor=#52667C;fillColor=#F3F6FA;strokeColor=#52667C;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="640" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="ui" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Floci UI :4500&lt;/b&gt;&lt;div style=&quot;font-size:16px;color:#52667C;margin-top:6px&quot;&gt;Separate Compose service&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=17;fontColor=#52667C;fillColor=#F3F6FA;strokeColor=#52667C;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="660" width="230" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="nexus" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;EC2 -&amp;gt; Nexus :8081&lt;/b&gt;&lt;div style=&quot;font-size:16px;color:#52667C;margin-top:6px&quot;&gt;user-data installs the application&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=17;fontColor=#AD6200;fillColor=#FFF5E6;strokeColor=#AD6200;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="865" width="300" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="publish" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Nexus: separate HTTP path&lt;/b&gt;&lt;div style=&quot;font-size:16px;color:#52667C;margin-top:6px&quot;&gt;Dynamic host port -&amp;gt; Floci forwarder&lt;br&gt;Get-NexusEndpoint.ps1 resolves the URL&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=17;fontColor=#AD6200;fillColor=#FFF5E6;strokeColor=#AD6200;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="865" width="510" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="subnets" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;Terraform subnets: a 10.40.1.0/24 (us-east-1a) | b 10.40.2.0/24 (us-east-1b)&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=17;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="650" y="990" width="1120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;AWS ALB forwards to NodePorts directly. Istio is not the HTTP entry point. Nexus readiness is checked after VM apply.&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=18;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1080" width="1790" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="foot" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;QUBERSHIP CLUSTER MANAGER  /  LOCAL ARCHITECTURE                        Source snapshot: 2026-10-28                        01 / 05&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=16;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1140" width="1800" height="28" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="page-2" name="02 - AWS workflows">
+    <mxGraphModel dx="1920" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="parallel" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Parallel group: services&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;Separate Atmos processes | max_concurrency: 2 | wait_all&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#52667C;fillColor=#F3F6FA;strokeColor=#52667C;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="310" width="1800" height="450" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-0" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#AD6200;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#AD6200;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.5;entryY=0.0;entryPerimeter=0;" edge="1" parent="1" source="nexus" target="ready">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="420" y="505" as="sourcePoint" />
+            <mxPoint x="420" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-1" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#008778;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#008778;labelBackgroundColor=#FFFFFF;exitX=0.49473684210526314;exitY=1.0;exitPerimeter=0;entryX=0.49473684210526314;entryY=0.0;entryPerimeter=0;" edge="1" parent="1" source="apps" target="needs">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1340" y="505" as="sourcePoint" />
+            <mxPoint x="1340" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-2" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.5;entryY=0.0;entryPerimeter=0;" edge="1" parent="1" source="entry" target="parallel">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="960" y="270" as="sourcePoint" />
+            <mxPoint x="960" y="310" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-3" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.5;entryY=0.0;entryPerimeter=0;" edge="1" parent="1" source="parallel" target="done">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="960" y="760" as="sourcePoint" />
+            <mxPoint x="960" y="795" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="title" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;AWS workflows: execution, readiness, and deletion&lt;/b&gt;&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=32;fontColor=#14263D;" vertex="1" parent="1">
+          <mxGeometry x="60" y="35" width="1800" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;workflows/customers/customer1/aws.yaml | Headlamp is part of deployment and destruction; it is no longer a separate manual install&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=18;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="95" width="1800" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="entry" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;deploy-staging / deploy-staging-no-hook&lt;/b&gt;&lt;div style=&quot;font-size:20px;color:#52667C;margin-top:6px&quot;&gt;network apply -&amp;gt; Kubernetes plan/apply -&amp;gt; Prepare-Cluster.ps1 -&amp;gt; Nexus plan&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=21;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="175" width="1800" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="nexus" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Nexus branch&lt;/b&gt;&lt;div style=&quot;font-size:19px;color:#52667C;margin-top:6px&quot;&gt;Apply saved Nexus plan&lt;br&gt;VM creation starts user-data installation&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=20;fontColor=#AD6200;fillColor=#FFF5E6;strokeColor=#AD6200;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="95" y="400" width="650" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="ready" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Application readiness&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;deploy-staging: after-apply hook&lt;br&gt;deploy-staging-no-hook: endpoint + HTTP steps&lt;br&gt;GET /service/rest/v1/status/writable -&amp;gt; 200&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#AD6200;fillColor=#FFF5E6;strokeColor=#AD6200;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="95" y="560" width="650" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="apps" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Platform branch&lt;/b&gt;&lt;div style=&quot;font-size:20px;color:#52667C;margin-top:6px&quot;&gt;istio -&amp;gt; argocd -&amp;gt; kiali -&amp;gt; minio -&amp;gt; headlamp&lt;br&gt;Then load-balancer plan/apply&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=21;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="870" y="400" width="950" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="needs" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Dependencies inside components&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;Istio: istio-base -&amp;gt; istiod&lt;br&gt;MinIO: minio -&amp;gt; minio-bucket (post-install/upgrade Job)&lt;br&gt;Kiali Operator reconciles the Kiali custom resource&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="870" y="560" width="950" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="done" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Deployment completes after both branches succeed&lt;/b&gt;&lt;div style=&quot;font-size:19px;color:#52667C;margin-top:6px&quot;&gt;VM creation is not Nexus readiness. Hook retry wraps the entire kind: steps hook.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=20;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="795" width="1800" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="sequential" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;destroy-staging: sequential&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;ALB -&amp;gt; Kiali CR -&amp;gt; Headlamp -&amp;gt; MinIO -&amp;gt; Kiali Operator&lt;br&gt;-&amp;gt; Argo CD -&amp;gt; Istio -&amp;gt; Kubernetes -&amp;gt; Nexus -&amp;gt; network&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#7852C5;fillColor=#F3EEFC;strokeColor=#7852C5;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="930" width="850" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="destroyparallel" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;destroy-staging-parallel&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;Nexus || platform deletion (same platform order)&lt;br&gt;Network is deleted only after both branches succeed.&lt;br&gt;Terraform apply/destroy retains -auto-approve.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#7852C5;fillColor=#F3EEFC;strokeColor=#7852C5;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="960" y="930" width="900" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="foot" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;QUBERSHIP CLUSTER MANAGER  /  LOCAL ARCHITECTURE                        Source snapshot: 2026-10-28                        02 / 05&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=16;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1140" width="1800" height="28" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="page-3" name="03 - Files and data">
+    <mxGraphModel dx="1920" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="edge-0" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.5;exitPerimeter=0;entryX=0.5;entryY=0.0;entryPerimeter=0;" edge="1" parent="1" source="atmos" target="stack">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="550" y="230" as="sourcePoint" />
+            <mxPoint x="1370" y="390" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="590" y="230" />
+              <mxPoint x="590" y="335" />
+              <mxPoint x="1370" y="335" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-label-0" value="discovery" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1363.0" y="312" width="74" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-1" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.5;exitPerimeter=0;entryX=0.5;entryY=0.0;entryPerimeter=0;" edge="1" parent="1" source="defaults" target="stack">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1275" y="240" as="sourcePoint" />
+            <mxPoint x="1370" y="390" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1370" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-2" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#008778;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#008778;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.5;exitPerimeter=0;entryX=0.0;entryY=0.4230769230769231;entryPerimeter=0;" edge="1" parent="1" source="catalog" target="stack">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="720" y="445" as="sourcePoint" />
+            <mxPoint x="880" y="445" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-label-2" value="import" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Segoe UI;fontSize=15;fontColor=#008778;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="771.5" y="417" width="57" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-3" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=0.22448979591836735;exitY=1.0;exitPerimeter=0;entryX=0.5;entryY=0.0;entryPerimeter=0;" edge="1" parent="1" source="stack" target="tf">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1100" y="520" as="sourcePoint" />
+            <mxPoint x="390" y="625" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1100" y="570" />
+              <mxPoint x="390" y="570" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-label-3" value="resolved vars" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="576.0" y="543" width="98" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-4" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#008778;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#008778;labelBackgroundColor=#FFFFFF;exitX=0.6428571428571429;exitY=1.0;exitPerimeter=0;entryX=0.5833333333333334;entryY=0.0;entryPerimeter=0;" edge="1" parent="1" source="stack" target="helm">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1510" y="520" as="sourcePoint" />
+            <mxPoint x="1510" y="625" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-label-4" value="state values" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Segoe UI;fontSize=15;fontColor=#008778;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1555.5" y="565" width="89" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-5" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.4177215189873418;entryY=0.0;entryPerimeter=0;" edge="1" parent="1" source="tf" target="state">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="390" y="765" as="sourcePoint" />
+            <mxPoint x="390" y="865" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-6" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#008778;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#008778;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.5;entryY=0.0;entryPerimeter=0;" edge="1" parent="1" source="helm" target="services">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1440" y="765" as="sourcePoint" />
+            <mxPoint x="1440" y="865" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-7" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;dashed=1;exitX=0.0;exitY=0.5357142857142857;exitPerimeter=0;entryX=0.0;entryY=0.5;entryPerimeter=0;" edge="1" parent="1" source="state" target="tf">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="60" y="940" as="sourcePoint" />
+            <mxPoint x="60" y="695" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="30" y="940" />
+              <mxPoint x="30" y="695" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="title" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Files and data: how Atmos builds a deployment&lt;/b&gt;&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=32;fontColor=#14263D;" vertex="1" parent="1">
+          <mxGeometry x="60" y="35" width="1800" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;Configuration inheritance does not execute resources. Workflows supply execution order; Terraform state supplies cross-component outputs.&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=18;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="95" width="1800" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="atmos" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;atmos.yaml&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;Component / stack / workflow discovery&lt;br&gt;Stack name: tenant-cloud-stage&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="175" width="490" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="defaults" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Customer and cloud defaults&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;customers/customer1/_defaults.yaml&lt;br&gt;customers/customer1/aws/_defaults.yaml&lt;br&gt;Explicit import chain; nesting alone does not inherit&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="665" y="175" width="610" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="catalog" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;stacks/catalog/&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;aws/, azure/, gcp/: component paths + input defaults&lt;br&gt;helmfile/: chart versions and shared values&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="390" width="660" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="stack" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Final customer stack&lt;/b&gt;&lt;div style=&quot;font-size:19px;color:#52667C;margin-top:6px&quot;&gt;stacks/customers/customer1/aws/staging.yaml&lt;br&gt;Imports defaults and catalogs; overrides inputs,&lt;br&gt;workspace, application values, and kubeconfig&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=20;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="880" y="390" width="980" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="tf" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Terraform implementation&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;components/terraform/aws/network/&lt;br&gt;*.tf files in one directory form one root module.&lt;br&gt;A separate workspace holds each stack state.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="625" width="660" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="helm" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Shared Helmfile implementation&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;components/helmfile/argocd/helmfile.yaml.gotmpl&lt;br&gt;Adjacent values.yaml.gotmpl serializes .Values.values&lt;br&gt;Catalog values + stack overrides -&amp;gt; chart values&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="625" width="840" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="state" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Terraform state and outputs&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;!terraform.state network subnet_ids -&amp;gt; AWS Kubernetes&lt;br&gt;Azure Kubernetes reads resource_group_name and&lt;br&gt;.subnet_ids.kubernetes from Azure network state.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="865" width="790" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="services" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Kubernetes Services&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;Helm / operator creates Services. AWS load-balancer&lt;br&gt;reads Argo CD, Kiali, and MinIO Console NodePorts.&lt;br&gt;Headlamp NodePort is passed explicitly as an input.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="865" width="840" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;Customer2 has its own AWS manifest, workspace, and kubeconfig. Azure reuses the same Helmfile components; GCP remains an inactive template.&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=18;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1060" width="1800" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="foot" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;QUBERSHIP CLUSTER MANAGER  /  LOCAL ARCHITECTURE                        Source snapshot: 2026-10-28                        03 / 05&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=16;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1140" width="1800" height="28" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="page-4" name="04 - AWS ports and access">
+    <mxGraphModel dx="1920" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="edge-0" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.5;exitPerimeter=0;entryX=0.0;entryY=0.45454545454545453;entryPerimeter=0;" edge="1" parent="1" source="compose" target="listener">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="560" y="225" as="sourcePoint" />
+            <mxPoint x="670" y="225" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-1" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#52667C;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#52667C;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.45454545454545453;exitPerimeter=0;entryX=0.0;entryY=0.5;entryPerimeter=0;" edge="1" parent="1" source="listener" target="default">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1270" y="225" as="sourcePoint" />
+            <mxPoint x="1380" y="225" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-2" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#008778;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#008778;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.49473684210526314;exitPerimeter=0;entryX=0.0;entryY=0.49473684210526314;entryPerimeter=0;" edge="1" parent="1" source="f0" target="h0">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="447" as="sourcePoint" />
+            <mxPoint x="650" y="447" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-3" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#008778;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#008778;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.49473684210526314;exitPerimeter=0;entryX=0.0;entryY=0.49473684210526314;entryPerimeter=0;" edge="1" parent="1" source="h0" target="t0">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="447" as="sourcePoint" />
+            <mxPoint x="1080" y="447" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-4" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#008778;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#008778;labelBackgroundColor=#FFFFFF;dashed=1;exitX=1.0;exitY=0.49473684210526314;exitPerimeter=0;entryX=0.0;entryY=0.49473684210526314;entryPerimeter=0;" edge="1" parent="1" source="t0" target="p0">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1440" y="447" as="sourcePoint" />
+            <mxPoint x="1540" y="447" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-5" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#AD6200;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#AD6200;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.49473684210526314;exitPerimeter=0;entryX=0.0;entryY=0.49473684210526314;entryPerimeter=0;" edge="1" parent="1" source="f1" target="h1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="572" as="sourcePoint" />
+            <mxPoint x="650" y="572" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-6" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#AD6200;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#AD6200;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.49473684210526314;exitPerimeter=0;entryX=0.0;entryY=0.49473684210526314;entryPerimeter=0;" edge="1" parent="1" source="h1" target="t1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="572" as="sourcePoint" />
+            <mxPoint x="1080" y="572" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-7" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#AD6200;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#AD6200;labelBackgroundColor=#FFFFFF;dashed=1;exitX=1.0;exitY=0.49473684210526314;exitPerimeter=0;entryX=0.0;entryY=0.49473684210526314;entryPerimeter=0;" edge="1" parent="1" source="t1" target="p1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1440" y="572" as="sourcePoint" />
+            <mxPoint x="1540" y="572" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-8" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.49473684210526314;exitPerimeter=0;entryX=0.0;entryY=0.49473684210526314;entryPerimeter=0;" edge="1" parent="1" source="f2" target="h2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="697" as="sourcePoint" />
+            <mxPoint x="650" y="697" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-9" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.49473684210526314;exitPerimeter=0;entryX=0.0;entryY=0.49473684210526314;entryPerimeter=0;" edge="1" parent="1" source="h2" target="t2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="697" as="sourcePoint" />
+            <mxPoint x="1080" y="697" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-10" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;dashed=1;exitX=1.0;exitY=0.49473684210526314;exitPerimeter=0;entryX=0.0;entryY=0.49473684210526314;entryPerimeter=0;" edge="1" parent="1" source="t2" target="p2">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1440" y="697" as="sourcePoint" />
+            <mxPoint x="1540" y="697" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-11" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7852C5;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#7852C5;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.49473684210526314;exitPerimeter=0;entryX=0.0;entryY=0.49473684210526314;entryPerimeter=0;" edge="1" parent="1" source="f3" target="h3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="822" as="sourcePoint" />
+            <mxPoint x="650" y="822" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-12" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7852C5;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#7852C5;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.49473684210526314;exitPerimeter=0;entryX=0.0;entryY=0.49473684210526314;entryPerimeter=0;" edge="1" parent="1" source="h3" target="t3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="822" as="sourcePoint" />
+            <mxPoint x="1080" y="822" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-13" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#7852C5;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#7852C5;labelBackgroundColor=#FFFFFF;dashed=1;exitX=1.0;exitY=0.49473684210526314;exitPerimeter=0;entryX=0.0;entryY=0.49473684210526314;entryPerimeter=0;" edge="1" parent="1" source="t3" target="p3">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1440" y="822" as="sourcePoint" />
+            <mxPoint x="1540" y="822" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="title" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;AWS routes, health checks, and Kubernetes permissions&lt;/b&gt;&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=32;fontColor=#14263D;" vertex="1" parent="1">
+          <mxGeometry x="60" y="35" width="1800" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;Source: components/terraform/aws/load-balancer/ | Listener routing and security-group permissions are separate configuration.&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=18;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="95" width="1800" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="compose" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;local/compose.yml&lt;/b&gt;&lt;div style=&quot;font-size:19px;color:#52667C;margin-top:6px&quot;&gt;Windows 127.0.0.1:80 -&amp;gt; floci:80&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=20;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="175" width="500" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="listener" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;main.tf: ALB + HTTP :80&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;SG ingress TCP 80&lt;br&gt;Node lookup by VPC + EKS cluster tag&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="670" y="175" width="600" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="default" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Default listener action&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;Forward unmatched hosts to Argo CD&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#52667C;fillColor=#F3F6FA;strokeColor=#52667C;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1380" y="175" width="480" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c1" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;FILE / RULE PRIORITY&lt;/b&gt;&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=18;fontColor=#14263D;" vertex="1" parent="1">
+          <mxGeometry x="60" y="330" width="510" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;HOST HEADER&lt;/b&gt;&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=18;fontColor=#14263D;" vertex="1" parent="1">
+          <mxGeometry x="650" y="330" width="330" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;NODE IP + NODEPORT&lt;/b&gt;&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=18;fontColor=#14263D;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="330" width="360" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="c4" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;HEALTH CHECK&lt;/b&gt;&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=18;fontColor=#14263D;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="330" width="310" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="f0" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;minio.tf | 1&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;NodePort read from Service&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="400" width="510" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="h0" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;minio.localhost&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;condition: host_header&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="400" width="330" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="t0" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;MinIO Console | 30082&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;target_type: ip&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="400" width="360" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="p0" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;/ -&amp;gt; 200&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;HTTP health check&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="400" width="310" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="f1" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;headlamp.tf | 2&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;var.headlamp_node_port&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#AD6200;fillColor=#FFF5E6;strokeColor=#AD6200;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="525" width="510" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="h1" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;headlamp.localhost&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;condition: host_header&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#AD6200;fillColor=#FFF5E6;strokeColor=#AD6200;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="525" width="330" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="t1" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Headlamp | 30083&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;target_type: ip&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#AD6200;fillColor=#FFF5E6;strokeColor=#AD6200;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="525" width="360" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="p1" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;/ -&amp;gt; 200-399&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;HTTP health check&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#AD6200;fillColor=#FFF5E6;strokeColor=#AD6200;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="525" width="310" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="f2" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;argocd.tf | 5&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;NodePort read from Service&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="650" width="510" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="h2" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;argocd.localhost&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;condition: host_header&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="650" width="330" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Argo CD | 30080&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;target_type: ip&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="650" width="360" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="p2" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;/healthz -&amp;gt; 200&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;HTTP health check&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="650" width="310" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="f3" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;kiali.tf | 10&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;NodePort read from Service&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#7852C5;fillColor=#F3EEFC;strokeColor=#7852C5;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="775" width="510" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="h3" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;kiali.localhost&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;condition: host_header&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#7852C5;fillColor=#F3EEFC;strokeColor=#7852C5;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="650" y="775" width="330" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="t3" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Kiali | 30081&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;target_type: ip&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#7852C5;fillColor=#F3EEFC;strokeColor=#7852C5;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="775" width="360" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="p3" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;/healthz -&amp;gt; 200&lt;/b&gt;&lt;div style=&quot;font-size:17px;color:#52667C;margin-top:6px&quot;&gt;HTTP health check&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=18;fontColor=#7852C5;fillColor=#F3EEFC;strokeColor=#7852C5;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1540" y="775" width="310" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="sg" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Target groups and network access&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;Each route file configures SG egress to its NodePort&lt;br&gt;and attaches the EKS node IP to its target group.&lt;br&gt;The provider uses the stack-specific kubeconfig_path.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="950" width="860" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="rbac" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Credentials and RBAC&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;MinIO Secret rootUser/rootPassword -&amp;gt; bucket Job.&lt;br&gt;Headlamp ServiceAccount: view + Secret read in storage.&lt;br&gt;A token identifies the caller; RBAC grants permissions.&lt;br&gt;MinIO persistence is disabled in the lab catalog.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="980" y="950" width="880" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="foot" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;QUBERSHIP CLUSTER MANAGER  /  LOCAL ARCHITECTURE                        Source snapshot: 2026-10-28                        04 / 05&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=16;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1140" width="1800" height="28" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="page-5" name="05 - Azure local environment">
+    <mxGraphModel dx="1920" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1200" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="edge-0" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.23333333333333334;entryY=0.0;entryPerimeter=0;" edge="1" parent="1" source="start" target="prepare">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="480" y="310" as="sourcePoint" />
+            <mxPoint x="480" y="390" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-label-0" value="API prerequisite" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="511.5" y="340" width="117" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-1" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#2563EB;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1.0;exitPerimeter=0;entryX=0.7666666666666667;entryY=0.0;entryPerimeter=0;" edge="1" parent="1" source="deploy" target="prepare">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1440" y="310" as="sourcePoint" />
+            <mxPoint x="1440" y="390" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-label-1" value="access step" style="text;html=0;align=center;verticalAlign=middle;fontFamily=Segoe UI;fontSize=15;fontColor=#2563EB;fillColor=#FFFFFF;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1467.0" y="340" width="86" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="edge-2" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#008778;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#008778;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.5;exitPerimeter=0;entryX=0.0;entryY=0.48148148148148145;entryPerimeter=0;" edge="1" parent="1" source="browser" target="pf">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="510" y="680" as="sourcePoint" />
+            <mxPoint x="630" y="680" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge-3" value="" style="edgeStyle=none;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#008778;strokeWidth=2;fontFamily=Segoe UI;fontSize=15;fontColor=#008778;labelBackgroundColor=#FFFFFF;exitX=1.0;exitY=0.48148148148148145;exitPerimeter=0;entryX=0.0;entryY=0.48148148148148145;entryPerimeter=0;" edge="1" parent="1" source="pf" target="pods">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1240" y="680" as="sourcePoint" />
+            <mxPoint x="1360" y="680" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="title" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Azure local environment: provisioning and application access&lt;/b&gt;&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=32;fontColor=#14263D;" vertex="1" parent="1">
+          <mxGeometry x="60" y="35" width="1800" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;customer1-azure-staging | real k3s workloads via Floci Azure | the Azure load balancer stores configuration but does not forward traffic&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=18;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="95" width="1800" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="start" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Start-AzureLocal.ps1&lt;/b&gt;&lt;div style=&quot;font-size:19px;color:#52667C;margin-top:6px&quot;&gt;local/compose.azure.yml -&amp;gt; Floci Azure API :4577&lt;br&gt;Pinned nightly digest; TLS CA trusted for current user&lt;br&gt;Docker socket lets the emulator create a k3s node.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=20;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="175" width="840" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="deploy" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Customer Azure workflow&lt;/b&gt;&lt;div style=&quot;font-size:19px;color:#52667C;margin-top:6px&quot;&gt;workflows/customers/customer1/azure.yaml&lt;br&gt;network -&amp;gt; kubernetes -&amp;gt; access -&amp;gt; istio -&amp;gt; argocd&lt;br&gt;-&amp;gt; kiali -&amp;gt; minio -&amp;gt; headlamp -&amp;gt; load-balancer&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=20;fontColor=#2563EB;fillColor=#EEF4FF;strokeColor=#2563EB;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="175" width="840" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="prepare" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Prepare-AzureCluster.ps1&lt;/b&gt;&lt;div style=&quot;font-size:19px;color:#52667C;margin-top:6px&quot;&gt;Read selected Atmos configuration -&amp;gt; request admin kubeconfig&lt;br&gt;Resolve published API port from the matching Docker container&lt;br&gt;Write .local-runtime/kubeconfig-customer1-azure-staging.yaml&lt;br&gt;Wait for Ready node and CoreDNS; current API port: 6600.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=20;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="390" width="1800" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="browser" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Browser / Windows&lt;/b&gt;&lt;div style=&quot;font-size:19px;color:#52667C;margin-top:6px&quot;&gt;Argo CD: localhost:18080&lt;br&gt;Kiali: localhost:18081&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=20;fontColor=#52667C;fillColor=#F3F6FA;strokeColor=#52667C;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="625" width="450" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="pf" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;kubectl port-forward&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;Argo CD svc/argocd-server 18080:80&lt;br&gt;Kiali svc/kiali 18081:20001&lt;br&gt;Run each command in its own terminal.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="615" width="610" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="pods" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Real Kubernetes workloads&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;API -&amp;gt; Service-selected Pod&lt;br&gt;Argo CD and Kiali returned HTTP 200.&lt;br&gt;Istio, MinIO, Headlamp also deployed.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#008778;fillColor=#EAF8F4;strokeColor=#008778;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="615" width="500" height="135" as="geometry" />
+        </mxCell>
+        <mxCell id="lb" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Azure load-balancer: API resources only&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;Public IP + LB + backend pool/address + probe + TCP rule&lt;br&gt;Rule: frontend :80 -&amp;gt; Kiali NodePort :30081&lt;br&gt;Backend IP is recorded in the stack; recheck after recreation.&lt;br&gt;No packet forwarding is implemented by this Floci service.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#AD6200;fillColor=#FFF5E6;strokeColor=#AD6200;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="825" width="900" height="175" as="geometry" />
+        </mxCell>
+        <mxCell id="limits" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;&lt;b&gt;Current emulator constraints&lt;/b&gt;&lt;div style=&quot;font-size:18px;color:#52667C;margin-top:6px&quot;&gt;AKS read-back omits properties: repeat plans may replace it.&lt;br&gt;Review plans before repeating Kubernetes apply.&lt;br&gt;Local subnet RBAC assignment is disabled in this stack.&lt;br&gt;The real-Azure module defaults still enable the assignment.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;align=left;verticalAlign=top;spacingLeft=18;spacingTop=13;fontFamily=Segoe UI;fontSize=19;fontColor=#AD6200;fillColor=#FFF5E6;strokeColor=#AD6200;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="825" width="840" height="175" as="geometry" />
+        </mxCell>
+        <mxCell id="destroy" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;destroy-staging: load-balancer -&amp;gt; Kiali CR -&amp;gt; headlamp -&amp;gt; minio -&amp;gt; kiali -&amp;gt; argocd -&amp;gt; istio -&amp;gt; kubernetes -&amp;gt; network&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=18;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1050" width="1800" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="stop" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;Delete resources successfully before Compose stop. KEEP_RUNNING_ON_SHUTDOWN preserves AKS during emulator restarts.&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=17;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1090" width="1800" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="foot" value="&lt;div style=&quot;font-family:Segoe UI;line-height:1.28&quot;&gt;QUBERSHIP CLUSTER MANAGER  /  LOCAL ARCHITECTURE                        Source snapshot: 2026-10-28                        05 / 05&lt;/div&gt;" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=top;spacing=0;strokeColor=none;fillColor=none;fontSize=16;fontColor=#52667C;" vertex="1" parent="1">
+          <mxGeometry x="60" y="1140" width="1800" height="28" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

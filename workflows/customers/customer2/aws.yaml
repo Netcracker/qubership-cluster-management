@@ -1,0 +1,22 @@
+workflows:
+  deploy-staging:
+    stack: customer2-aws-staging
+    steps:
+    - command: terraform apply network
+      name: network
+    - command: terraform apply kubernetes
+      name: kubernetes
+    - type: shell
+      command: pwsh -NoProfile -File ./local/scripts/Prepare-Cluster.ps1 -Stack customer2-aws-staging
+      name: access
+    - command: helmfile apply istio
+      name: istio
+    - command: helmfile apply argocd
+      name: argocd
+    - command: helmfile apply kiali
+      name: kiali
+    - command: helmfile apply minio
+      name: minio
+    - command: helmfile apply headlamp
+      name: headlamp
+    description: Deploy customer2 AWS staging

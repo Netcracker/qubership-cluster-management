@@ -1,0 +1,18 @@
+repositories:
+  - name: minio
+    url: https://charts.min.io/
+helmDefaults:
+  wait: true
+  timeout: 600
+releases:
+  - name: minio
+    namespace: storage
+    createNamespace: true
+    chart: minio/minio
+    version: {{ .Values.chart_version | quote }}
+    values: [values.yaml.gotmpl]
+  - name: minio-bucket
+    namespace: storage
+    chart: ./charts/minio-bucket
+    needs: [storage/minio]
+    values: [values-bucket.yaml.gotmpl]

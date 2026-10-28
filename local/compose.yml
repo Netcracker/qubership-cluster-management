@@ -1,0 +1,37 @@
+name: atmos-local
+services:
+  floci:
+    image: floci/floci:latest
+    networks:
+      default:
+        ipv4_address: 172.18.0.2
+    ports:
+      - "4566:4566"
+      - "127.0.0.1:80:80"
+    environment:
+      FLOCI_STORAGE_MODE: "persistent"
+      FLOCI_STORAGE_PERSISTENT_PATH: "/app/data"
+      FLOCI_SERVICES_LAMBDA_DOCKER_HOST_OVERRIDE: "floci"
+    volumes:
+      - "./floci-data:/app/data"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  ui:
+    image: floci/floci-ui:latest
+    networks:
+      default:
+        ipv4_address: 172.18.0.3
+    ports:
+      - "127.0.0.1:4500:4500"
+    environment:
+      PORT: "4500"
+      FLOCI_ENDPOINT: "http://floci:4566"
+      AWS_ENDPOINT_URL: "http://floci:4566"
+      AWS_REGION: "us-east-1"
+      AWS_DEFAULT_REGION: "us-east-1"
+      AWS_ACCESS_KEY_ID: "test"
+      AWS_SECRET_ACCESS_KEY: "test"
+networks:
+  default:
+    external: true
+    name: aws-local_default

@@ -1,0 +1,8 @@
+components:
+  terraform:
+    load-balancer:
+      metadata:
+        component: azure/load-balancer
+      vars:
+        resource_group_name: !terraform.state network resource_group_name
+        vpc_id: !terraform.state network vpc_id

@@ -1,0 +1,6 @@
+workflows:
+  infrastructure:
+    description: Create GCP network and managed Kubernetes
+    steps:
+      - command: terraform apply network
+      - command: terraform apply kubernetes

@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 3
+  activeDeadlineSeconds: 180
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: create-bucket
+          image: {{ .Values.image | quote }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              mc alias set storage "$MINIO_ENDPOINT" "$MINIO_USER" "$MINIO_PASSWORD"
+              mc mb --ignore-existing "storage/$MINIO_BUCKET"
+          env:
+            - name: MINIO_ENDPOINT
+              value: {{ .Values.endpoint | quote }}
+            - name: MINIO_BUCKET
+              value: {{ .Values.bucket | quote }}
+            - name: MINIO_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret | quote }}
+                  key: rootUser
+            - name: MINIO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.existingSecret | quote }}
+                  key: rootPassword

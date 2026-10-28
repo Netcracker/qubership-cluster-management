@@ -1,0 +1,47 @@
+workflows:
+  deploy-staging:
+    description: Deploy customer1 Azure staging through local Floci Azure
+    stack: customer1-azure-staging
+    steps:
+      - name: network
+        command: terraform apply network -input=false -auto-approve
+      - name: kubernetes
+        command: terraform apply kubernetes -input=false -auto-approve
+      - name: access
+        type: shell
+        command: pwsh -NoProfile -File ./local/scripts/Prepare-AzureCluster.ps1 -Stack customer1-azure-staging
+      - name: istio
+        command: helmfile apply istio
+      - name: argocd
+        command: helmfile apply argocd
+      - name: kiali
+        command: helmfile apply kiali
+      - name: minio
+        command: helmfile apply minio
+      - name: headlamp
+        command: helmfile apply headlamp
+      - name: load-balancer
+        command: terraform apply load-balancer -input=false -auto-approve
+  destroy-staging:
+    description: Destroy customer1 Azure staging resources before stopping Floci Azure
+    stack: customer1-azure-staging
+    steps:
+      - name: load-balancer
+        command: terraform destroy load-balancer -input=false -auto-approve
+      - name: kiali-instance
+        type: shell
+        command: kubectl --kubeconfig ./.local-runtime/kubeconfig-customer1-azure-staging.yaml delete kiali kiali -n istio-system --ignore-not-found=true --wait=true --timeout=180s
+      - name: headlamp
+        command: helmfile destroy headlamp
+      - name: minio
+        command: helmfile destroy minio
+      - name: kiali
+        command: helmfile destroy kiali
+      - name: argocd
+        command: helmfile destroy argocd
+      - name: istio
+        command: helmfile destroy istio
+      - name: kubernetes
+        command: terraform destroy kubernetes -input=false -auto-approve
+      - name: network
+        command: terraform destroy network -input=false -auto-approve

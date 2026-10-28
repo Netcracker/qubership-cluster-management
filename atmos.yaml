@@ -1,0 +1,14 @@
+base_path: "."
+components:
+  terraform:
+    base_path: components/terraform
+  helmfile:
+    base_path: components/helmfile
+    use_eks: false
+stacks:
+  base_path: stacks
+  included_paths: ["customers/**/*.yaml"]
+  excluded_paths: ["**/_defaults.yaml"]
+  name_template: "{{ .vars.tenant }}-{{ .vars.cloud }}-{{ .vars.stage }}"
+workflows:
+  base_path: workflows

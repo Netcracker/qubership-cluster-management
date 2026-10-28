@@ -1,0 +1,50 @@
+import:
+  - customers/customer1/azure/_defaults
+  - catalog/azure/network
+  - catalog/azure/kubernetes
+  - catalog/azure/load-balancer
+  - catalog/helmfile/argocd
+  - catalog/helmfile/istio
+  - catalog/helmfile/kiali
+  - catalog/helmfile/minio
+  - catalog/helmfile/headlamp
+vars:
+  stage: staging
+  environment: customer1-azure-staging
+settings:
+  local_azure_lab: true
+env:
+  HTTPS_PROXY: http://127.0.0.1:12334
+  ARM_METADATA_HOSTNAME: localhost:4577
+  ARM_USE_CLI: "false"
+  ARM_SUBSCRIPTION_ID: 00000000-0000-0000-0000-000000000001
+  ARM_TENANT_ID: 00000000-0000-0000-0000-000000000002
+  ARM_CLIENT_ID: 00000000-0000-0000-0000-000000000003
+  ARM_CLIENT_SECRET: fake-secret
+  NO_PROXY: localhost,127.0.0.1,::1
+  KUBECONFIG: ../../../.local-runtime/kubeconfig-customer1-azure-staging.yaml
+components:
+  terraform:
+    network:
+      metadata:
+        terraform_workspace: customer1-azure-staging
+      vars:
+        vpc_cidr: 10.60.0.0/16
+        subnets:
+          kubernetes:
+            cidr_block: 10.60.1.0/24
+    kubernetes:
+      metadata:
+        terraform_workspace: customer1-azure-staging
+      vars:
+        node_count: 1
+        manage_network_role_assignment: false
+    load-balancer:
+      metadata:
+        terraform_workspace: customer1-azure-staging
+      vars:
+        frontend_port: 80
+        backend_port: 30081
+        # Current Floci k3s Docker address; recheck after cluster recreation.
+        backend_addresses:
+          kubernetes: 172.19.0.3

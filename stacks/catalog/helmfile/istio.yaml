@@ -1,0 +1,15 @@
+{
+  "components": {
+    "helmfile": {
+      "istio": {
+        "vars": {
+          "chart_version": "1.30.6",
+          "base_values": {
+            "defaultRevision": "default"
+          },
+          "values": {}
+        }
+      }
+    }
+  }
+}

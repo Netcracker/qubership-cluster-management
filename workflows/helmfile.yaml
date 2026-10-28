@@ -1,0 +1,9 @@
+workflows:
+  deploy:
+    description: Install shared Kubernetes components
+    steps:
+      - command: helmfile apply istio
+      - command: helmfile apply argocd
+      - command: helmfile apply kiali
+      - command: helmfile apply minio
+      - command: helmfile apply headlamp

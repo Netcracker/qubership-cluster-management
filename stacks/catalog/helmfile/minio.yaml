@@ -1,0 +1,41 @@
+{
+  "components": {
+    "helmfile": {
+      "minio": {
+        "vars": {
+          "chart_version": "5.4.0",
+          "values": {
+            "mode": "standalone",
+            "image": {
+              "repository": "pgsty/minio",
+              "tag": "RELEASE.2026-08-04T00-00-00Z"
+            },
+            "mcImage": {
+              "repository": "pgsty/minio",
+              "tag": "RELEASE.2026-08-04T00-00-00Z"
+            },
+            "replicas": 1,
+            "fullnameOverride": "minio",
+            "persistence": {
+              "enabled": false
+            },
+            "resources": {
+              "requests": {
+                "cpu": "100m",
+                "memory": "256Mi"
+              }
+            },
+            "consoleService": {
+              "type": "NodePort",
+              "nodePort": 30082
+            },
+            "users": []
+          },
+          "bucket_values": {
+            "bucket": "demo"
+          }
+        }
+      }
+    }
+  }
+}

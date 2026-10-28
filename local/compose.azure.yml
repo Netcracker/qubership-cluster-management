@@ -1,0 +1,17 @@
+name: atmos-local-azure
+services:
+  floci-az:
+    image: floci/floci-az:nightly@sha256:b3e3623da140fae2b98997558cecb13cbf8f67ade2bd6e8d725cbd1d62322f12
+    ports:
+      - "127.0.0.1:4577:4577"
+    environment:
+      FLOCI_AZ_TLS_ENABLED: "true"
+      FLOCI_AZ_STORAGE_MODE: persistent
+      FLOCI_AZ_STORAGE_PATH: /app/data
+      FLOCI_AZ_SERVICES_AKS_MOCKED: "false"
+      FLOCI_AZ_SERVICES_AKS_KEEP_RUNNING_ON_SHUTDOWN: "true"
+      FLOCI_AZ_SERVICES_AKS_API_SERVER_BASE_PORT: "6600"
+      FLOCI_AZ_SERVICES_AKS_API_SERVER_MAX_PORT: "6699"
+    volumes:
+      - ./floci-azure-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock

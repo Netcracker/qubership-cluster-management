@@ -1,0 +1,19 @@
+repositories:
+  - name: istio
+    url: https://istio-release.storage.googleapis.com/charts
+helmDefaults:
+  wait: true
+  timeout: 600
+releases:
+  - name: istio-base
+    namespace: istio-system
+    createNamespace: true
+    chart: istio/base
+    version: {{ .Values.chart_version | quote }}
+    values: [values-base.yaml.gotmpl]
+  - name: istiod
+    namespace: istio-system
+    chart: istio/istiod
+    version: {{ .Values.chart_version | quote }}
+    needs: [istio-system/istio-base]
+    values: [values-istiod.yaml.gotmpl]

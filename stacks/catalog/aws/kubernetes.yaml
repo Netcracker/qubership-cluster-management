@@ -1,0 +1,7 @@
+components:
+  terraform:
+    kubernetes:
+      metadata:
+        component: aws/kubernetes
+      vars:
+        subnet_ids: !terraform.state network subnet_ids

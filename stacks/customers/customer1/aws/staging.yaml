@@ -1,0 +1,49 @@
+import:
+  - customers/customer1/aws/_defaults
+  - catalog/aws/network
+  - catalog/aws/kubernetes
+  - catalog/aws/load-balancer
+  - catalog/aws/nexus
+  - catalog/helmfile/argocd
+  - catalog/helmfile/istio
+  - catalog/helmfile/kiali
+  - catalog/helmfile/minio
+  - catalog/helmfile/headlamp
+vars:
+  stage: staging
+  environment: customer1-staging
+env:
+  KUBECONFIG: ../../../.local-runtime/kubeconfig-customer1-aws-staging.yaml
+components:
+  terraform:
+    nexus:
+      metadata:
+        terraform_workspace: customer1-aws-staging
+    load-balancer:
+      metadata:
+        terraform_workspace: customer1-aws-staging
+      vars:
+        kubeconfig_path: ../../../../.local-runtime/kubeconfig-customer1-aws-staging.yaml
+    kubernetes:
+      metadata:
+        terraform_workspace: customer1-aws-staging
+    network:
+      metadata:
+        terraform_workspace: customer1-aws-staging
+      vars:
+        vpc_cidr: 10.40.0.0/16
+        subnets:
+          a:
+            cidr_block: 10.40.1.0/24
+            availability_zone: us-east-1a
+          b:
+            cidr_block: 10.40.2.0/24
+            availability_zone: us-east-1b
+  helmfile:
+    argocd:
+      vars:
+        values:
+          server:
+            replicas: 2
+            service:
+              type: NodePort

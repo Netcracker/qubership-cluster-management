@@ -1,0 +1,8 @@
+components:
+  terraform:
+    kubernetes:
+      metadata:
+        component: gcp/kubernetes
+      vars:
+        vpc_id: !terraform.state network vpc_id
+        subnet_id: !terraform.state network subnet_id

@@ -1,0 +1,5 @@
+components:
+  terraform:
+    load-balancer:
+      metadata:
+        component: gcp/load-balancer

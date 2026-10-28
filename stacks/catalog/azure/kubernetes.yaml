@@ -1,0 +1,8 @@
+components:
+  terraform:
+    kubernetes:
+      metadata:
+        component: azure/kubernetes
+      vars:
+        resource_group_name: !terraform.state network resource_group_name
+        subnet_id: !terraform.state network .subnet_ids.kubernetes

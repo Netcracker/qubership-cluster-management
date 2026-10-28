@@ -1,0 +1,179 @@
+workflows:
+  deploy-staging:
+    description: 'Deploy customer1 AWS staging: network, Kubernetes and access, then Nexus and apps concurrently'
+    stack: customer1-aws-staging
+    steps:
+    - name: network
+      command: terraform apply network -auto-approve
+    - name: plan-kubernetes
+      command: terraform plan kubernetes -input=false
+    - name: kubernetes
+      command: terraform apply kubernetes --from-plan -input=false -auto-approve
+    - name: access
+      command: pwsh -NoProfile -File ./local/scripts/Prepare-Cluster.ps1 -Stack customer1-aws-staging
+      type: shell
+    - name: plan-nexus
+      command: terraform plan nexus -input=false
+    - name: services
+      type: parallel
+      max_concurrency: 2
+      fail:
+        mode: wait_all
+      output:
+        mode: prefixed
+        show_summary: true
+      steps:
+      - name: nexus
+        command: workflow deploy-nexus-staging -f customers/customer1/aws
+        type: atmos
+      - name: platform
+        command: workflow deploy-platform-staging -f customers/customer1/aws
+        type: atmos
+  deploy-nexus-staging:
+    description: 'Internal branch: apply the previously saved Nexus plan; after-apply hook waits for readiness'
+    stack: customer1-aws-staging
+    steps:
+    - name: nexus
+      command: terraform apply nexus --from-plan -input=false -auto-approve
+  deploy-platform-staging:
+    description: 'Internal branch: install apps and load balancer after Kubernetes access is ready'
+    stack: customer1-aws-staging
+    steps:
+    - name: istio
+      command: helmfile apply istio
+    - name: argocd
+      command: helmfile apply argocd
+    - name: kiali
+      command: helmfile apply kiali
+    - name: minio
+      command: helmfile apply minio
+    - name: headlamp
+      command: helmfile apply headlamp
+    - name: plan-load-balancer
+      command: terraform plan load-balancer -input=false
+    - name: load-balancer
+      command: terraform apply load-balancer --from-plan -input=false -auto-approve
+  deploy-staging-no-hook:
+    description: 'Deploy customer1 AWS staging with explicit Nexus readiness steps instead of a hook'
+    stack: customer1-aws-staging
+    steps:
+    - name: network
+      command: terraform apply network -auto-approve
+    - name: plan-kubernetes
+      command: terraform plan kubernetes -input=false
+    - name: kubernetes
+      command: terraform apply kubernetes --from-plan -input=false -auto-approve
+    - name: access
+      command: pwsh -NoProfile -File ./local/scripts/Prepare-Cluster.ps1 -Stack customer1-aws-staging
+      type: shell
+    - name: plan-nexus
+      command: terraform plan nexus -input=false
+    - name: services
+      type: parallel
+      max_concurrency: 2
+      fail:
+        mode: wait_all
+      output:
+        mode: prefixed
+        show_summary: true
+      steps:
+      - name: nexus
+        command: workflow deploy-nexus-staging-no-hook -f customers/customer1/aws
+        type: atmos
+      - name: platform
+        command: workflow deploy-platform-staging -f customers/customer1/aws
+        type: atmos
+  deploy-nexus-staging-no-hook:
+    description: 'Internal branch: apply Nexus without its readiness hook, then check readiness explicitly'
+    stack: customer1-aws-staging
+    steps:
+    - name: nexus
+      command: terraform apply nexus --from-plan -input=false -auto-approve --skip-hooks=nexus-ready
+    - name: endpoint
+      type: shell
+      command: pwsh -NoProfile -File ./local/scripts/Get-NexusEndpoint.ps1 -Stack customer1-aws-staging
+      retry:
+        max_attempts: 60
+        max_elapsed_time: 5m
+        backoff_strategy: constant
+        initial_delay: 5s
+    - name: nexus-ready
+      type: http
+      url: "{{ .steps.endpoint.value | trim }}"
+      method: GET
+      timeout: 5s
+      expect:
+        status: [200]
+      retry:
+        max_attempts: 60
+        backoff_strategy: constant
+        initial_delay: 10s
+  destroy-staging:
+    description: Destroy customer1 AWS staging
+    stack: customer1-aws-staging
+    steps:
+    - name: load-balancer
+      command: terraform destroy load-balancer -auto-approve
+    - name: kiali-instance
+      type: shell
+      command: kubectl --kubeconfig ./.local-runtime/kubeconfig-customer1-aws-staging.yaml delete kiali kiali -n istio-system --ignore-not-found=true --wait=true --timeout=180s
+    - name: headlamp
+      command: helmfile destroy headlamp
+    - name: minio
+      command: helmfile destroy minio
+    - name: kiali
+      command: helmfile destroy kiali
+    - name: argocd
+      command: helmfile destroy argocd
+    - name: istio
+      command: helmfile destroy istio
+    - name: kubernetes
+      command: terraform destroy kubernetes -auto-approve
+    - name: nexus
+      command: terraform destroy nexus -auto-approve
+    - name: network
+      command: terraform destroy network -auto-approve
+  destroy-staging-parallel:
+    description: 'Destroy customer1 AWS staging: Nexus and platform concurrently,
+      then network'
+    stack: customer1-aws-staging
+    steps:
+    - name: services
+      type: parallel
+      max_concurrency: 2
+      fail:
+        mode: wait_all
+      output:
+        mode: prefixed
+        show_summary: true
+      steps:
+      - name: nexus
+        type: atmos
+        command: terraform destroy nexus -auto-approve
+      - name: platform
+        type: atmos
+        command: workflow destroy-platform-staging -f customers/customer1/aws
+    - name: network
+      command: terraform destroy network -auto-approve
+  destroy-platform-staging:
+    description: 'Internal branch: remove load balancer, applications and Kubernetes'
+    stack: customer1-aws-staging
+    steps:
+    - name: load-balancer
+      command: terraform destroy load-balancer -auto-approve
+    - name: kiali-instance
+      type: shell
+      command: kubectl --kubeconfig ./.local-runtime/kubeconfig-customer1-aws-staging.yaml
+        delete kiali kiali -n istio-system --ignore-not-found=true --wait=true --timeout=180s
+    - name: headlamp
+      command: helmfile destroy headlamp
+    - name: minio
+      command: helmfile destroy minio
+    - name: kiali
+      command: helmfile destroy kiali
+    - name: argocd
+      command: helmfile destroy argocd
+    - name: istio
+      command: helmfile destroy istio
+    - name: kubernetes
+      command: terraform destroy kubernetes -auto-approve

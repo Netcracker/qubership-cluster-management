@@ -1,0 +1,15 @@
+repositories:
+  - name: kiali
+    url: https://kiali.org/helm-charts
+helmDefaults:
+  wait: true
+  timeout: 600
+releases:
+  - name: kiali-operator
+    namespace: kiali-operator
+    createNamespace: true
+    chart: kiali/kiali-operator
+    version: {{ .Values.chart_version | quote }}
+    disableValidationOnInstall: true
+    values:
+      - values.yaml.gotmpl

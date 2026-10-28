@@ -1,0 +1,42 @@
+{
+  "components": {
+    "helmfile": {
+      "kiali": {
+        "vars": {
+          "chart_version": "2.33.0",
+          "values": {
+            "cr": {
+              "create": true,
+              "name": "kiali",
+              "namespace": "istio-system",
+              "spec": {
+                "auth": {
+                  "strategy": "anonymous"
+                },
+                "deployment": {
+                  "view_only_mode": true,
+                  "service_type": "NodePort"
+                },
+                "server": {
+                  "node_port": 30081,
+                  "web_root": "/"
+                },
+                "external_services": {
+                  "prometheus": {
+                    "enabled": false
+                  },
+                  "grafana": {
+                    "enabled": false
+                  },
+                  "tracing": {
+                    "enabled": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

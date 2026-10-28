@@ -1,0 +1,9 @@
+components:
+  terraform:
+    load-balancer:
+      metadata:
+        component: aws/load-balancer
+      vars:
+        vpc_id: !terraform.state network vpc_id
+        subnet_ids: !terraform.state network subnet_ids
+        headlamp_node_port: 30083

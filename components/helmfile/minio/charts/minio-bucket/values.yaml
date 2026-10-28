@@ -1,0 +1,4 @@
+image: docker.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+endpoint: http://minio:9000
+existingSecret: minio
+bucket: demo

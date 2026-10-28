@@ -1,0 +1,35 @@
+#!/bin/bash
+set -euo pipefail
+
+exec > >(tee -a /var/log/nexus-install.log) 2>&1
+
+export DEBIAN_FRONTEND=noninteractive
+
+apt-get update
+apt-get -o DPkg::Lock::Timeout=180 install -y ca-certificates curl tar gzip procps
+
+NEXUS_VERSION="${nexus_version}"
+NEXUS_DIR="/opt/nexus-$NEXUS_VERSION"
+ARCHIVE="/tmp/nexus.tar.gz"
+
+if ! id nexus >/dev/null 2>&1; then
+  useradd --system --create-home \
+    --home-dir /var/lib/nexus \
+    --shell /usr/sbin/nologin nexus
+fi
+
+if [ ! -d "$NEXUS_DIR" ]; then
+  curl --fail --location --retry 3 \
+    "https://download.sonatype.com/nexus/3/nexus-$NEXUS_VERSION-linux-x86_64.tar.gz" \
+    --output "$ARCHIVE"
+
+  tar -xzf "$ARCHIVE" -C /opt
+  rm -f "$ARCHIVE"
+fi
+
+ln -sfn "$NEXUS_DIR" /opt/nexus
+mkdir -p /opt/sonatype-work/nexus3
+
+chown -R nexus:nexus "$NEXUS_DIR" /opt/sonatype-work
+
+runuser -u nexus -- /opt/nexus/bin/nexus start

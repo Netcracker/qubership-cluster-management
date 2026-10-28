@@ -1,0 +1,7 @@
+import:
+  - customers/customer1/_defaults
+vars:
+  cloud: azure
+  region: northeurope
+settings:
+  local_lab: false

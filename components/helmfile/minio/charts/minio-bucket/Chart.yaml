@@ -1,0 +1,5 @@
+apiVersion: v2
+name: minio-bucket
+description: Create a bucket using credentials from a MinIO Secret
+type: application
+version: 0.1.0

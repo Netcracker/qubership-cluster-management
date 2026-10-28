@@ -1,0 +1,6 @@
+workflows:
+  infrastructure:
+    description: Create AZURE network and managed Kubernetes
+    steps:
+      - command: terraform apply network
+      - command: terraform apply kubernetes

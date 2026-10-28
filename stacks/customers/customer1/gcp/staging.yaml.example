@@ -1,0 +1,25 @@
+# Copy to staging.yaml only after filling the account/project and reviewing settings.
+import:
+  - customers/customer1/gcp/_defaults
+  - catalog/gcp/network
+  - catalog/gcp/kubernetes
+  - catalog/helmfile/argocd
+  - catalog/helmfile/istio
+  - catalog/helmfile/kiali
+  - catalog/helmfile/minio
+  - catalog/helmfile/headlamp
+env:
+  KUBECONFIG: ../../../.local-runtime/kubeconfig-customer1-gcp-staging.yaml
+vars:
+  stage: staging
+  environment: customer1-gcp-staging
+  project_id: REPLACE_WITH_GCP_PROJECT_ID
+  location: europe-west3-a
+components:
+  terraform:
+    network:
+      vars:
+        subnet_cidr: 10.70.1.0/24
+    kubernetes:
+      vars:
+        admin_cidrs: ["203.0.113.10/32"] # Replace with the real operator public IP/CIDR.

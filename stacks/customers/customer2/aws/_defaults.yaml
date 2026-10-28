@@ -1,0 +1,11 @@
+import:
+  - customers/customer2/_defaults
+vars:
+  cloud: aws
+  region: us-east-1
+  local_endpoint: http://localhost:4566
+settings:
+  local_lab: true
+env:
+  HTTPS_PROXY: http://127.0.0.1:12334
+  NO_PROXY: localhost,127.0.0.1,::1,floci

@@ -1,0 +1,5 @@
+components:
+  terraform:
+    network:
+      metadata:
+        component: gcp/network

@@ -1,0 +1,24 @@
+# Copy to staging.yaml only after filling the account/project and reviewing settings.
+import:
+  - customers/customer1/azure/_defaults
+  - catalog/azure/network
+  - catalog/azure/kubernetes
+  - catalog/helmfile/argocd
+  - catalog/helmfile/istio
+  - catalog/helmfile/kiali
+  - catalog/helmfile/minio
+  - catalog/helmfile/headlamp
+vars:
+  stage: staging
+  environment: customer1-azure-staging
+env:
+  KUBECONFIG: ../../../.local-runtime/kubeconfig-customer1-azure-staging.yaml
+  ARM_SUBSCRIPTION_ID: "REPLACE_WITH_SUBSCRIPTION_ID"
+components:
+  terraform:
+    network:
+      vars:
+        vpc_cidr: 10.60.0.0/16
+        subnets:
+          kubernetes:
+            cidr_block: 10.60.1.0/24

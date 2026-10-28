@@ -1,0 +1,25 @@
+{
+  "components": {
+    "helmfile": {
+      "argocd": {
+        "vars": {
+          "chart_version": "10.10.3",
+          "values": {
+            "configs": {
+              "params": {
+                "server.insecure": true
+              }
+            },
+            "server": {
+              "replicas": 1,
+              "service": {
+                "type": "ClusterIP",
+                "nodePortHttp": 30080
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

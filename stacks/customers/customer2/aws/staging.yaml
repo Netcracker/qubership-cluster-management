@@ -1,0 +1,39 @@
+import:
+  - customers/customer2/aws/_defaults
+  - catalog/aws/network
+  - catalog/aws/kubernetes
+  - catalog/helmfile/argocd
+  - catalog/helmfile/istio
+  - catalog/helmfile/kiali
+  - catalog/helmfile/minio
+  - catalog/helmfile/headlamp
+vars:
+  stage: staging
+  environment: customer2-staging
+env:
+  KUBECONFIG: ../../../.local-runtime/kubeconfig-customer2-aws-staging.yaml
+components:
+  terraform:
+    kubernetes:
+      metadata:
+        terraform_workspace: customer2-aws-staging
+    network:
+      metadata:
+        terraform_workspace: customer2-aws-staging
+      vars:
+        vpc_cidr: 10.50.0.0/16
+        subnets:
+          a:
+            cidr_block: 10.50.1.0/24
+            availability_zone: us-east-1a
+          b:
+            cidr_block: 10.50.2.0/24
+            availability_zone: us-east-1b
+  helmfile:
+    argocd:
+      vars:
+        values:
+          server:
+            replicas: 3
+            service:
+              type: ClusterIP

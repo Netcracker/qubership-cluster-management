@@ -1,0 +1,28 @@
+components:
+  helmfile:
+    headlamp:
+      vars:
+        chart_version: 0.46.0
+        values:
+          fullnameOverride: headlamp
+          image:
+            tag: v0.46.0
+          service:
+            type: NodePort
+            nodePort: 30083
+          serviceAccount:
+            create: true
+            name: headlamp
+          clusterRoleBinding:
+            create: true
+            clusterRoleName: view
+          extraManifests:
+          - "apiVersion: rbac.authorization.k8s.io/v1\nkind: Role\nmetadata:\n  name:\
+            \ headlamp-secrets-reader\n  namespace: storage\nrules:\n  - apiGroups:\
+            \ [\"\"]\n    resources: [\"secrets\"]\n    verbs: [\"get\", \"list\"\
+            , \"watch\"]\n"
+          - "apiVersion: rbac.authorization.k8s.io/v1\nkind: RoleBinding\nmetadata:\n\
+            \  name: headlamp-secrets-reader\n  namespace: storage\nsubjects:\n  -\
+            \ kind: ServiceAccount\n    name: headlamp\n    namespace: headlamp\n\
+            roleRef:\n  apiGroup: rbac.authorization.k8s.io\n  kind: Role\n  name:\
+            \ headlamp-secrets-reader\n"

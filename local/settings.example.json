@@ -1,0 +1,9 @@
+{
+  "endpoint": "http://localhost:4566",
+  "region": "us-east-1",
+  "network": "aws-local_default",
+  "subnet": "172.18.0.0/16",
+  "gateway": "172.18.0.1",
+  "registryIP": "172.18.0.4",
+  "dnsServers": ["8.8.8.8", "8.8.4.4"]
+}

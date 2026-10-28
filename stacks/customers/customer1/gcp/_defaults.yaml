@@ -1,0 +1,7 @@
+import:
+  - customers/customer1/_defaults
+vars:
+  cloud: gcp
+  region: europe-west3
+settings:
+  local_lab: false

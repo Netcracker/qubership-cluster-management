@@ -1,0 +1,39 @@
+components:
+  terraform:
+    nexus:
+      metadata:
+        component: aws/nexus
+      hooks:
+        nexus-ready:
+          events: [after.terraform.apply]
+          kind: steps
+          on_failure: fail
+          retry:
+            max_attempts: 60
+            max_elapsed_time: 15m
+            backoff_strategy: constant
+            initial_delay: 5s
+          with:
+            - name: endpoint
+              type: shell
+              working_directory: .
+              command: pwsh -NoProfile -File ./local/scripts/Get-NexusEndpoint.ps1 -Stack "{{ .stack }}"
+              output: capture
+              timeout: 90s
+            - name: nexus-ready
+              type: http
+              url: "{{ .steps.endpoint.value | trim }}"
+              method: GET
+              timeout: 5s
+              expect:
+                status: [200]
+              retry:
+                max_attempts: 60
+                backoff_strategy: constant
+                initial_delay: 10s
+      vars:
+        vpc_id: !terraform.state network vpc_id
+        subnet_id: !terraform.state network .subnet_ids.a
+        ami_id: ami-ubuntu2204
+        instance_type: m5.large
+        nexus_version: 3.97.1-02
