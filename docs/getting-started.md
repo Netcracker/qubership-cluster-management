@@ -151,10 +151,10 @@ if (-not (Test-Path -LiteralPath ./local/settings.json)) {
 Review endpoint, region, Docker subnet, and DNS. The AWS defaults use Docker subnet 172.18.0.0/16;
 check VPN/other-network conflicts. Compose fixed IPs must remain consistent with local settings.
 
-## 4. Network access, Russia, proxies, and providers
+## 4. Network access, proxies, and providers
 
 Downloading Terraform itself and downloading its providers are separate operations. Terraform can be installed
-while `terraform init` cannot reach the registry or download server. Requests from Russia or other restricted
+while `terraform init` cannot reach the registry or download server. Requests from restricted
 networks may receive HTTP 403; proxy, DNS, TLS, and connection errors have different causes.
 An existing provider cache does not prove a fresh machine can download providers.
 
