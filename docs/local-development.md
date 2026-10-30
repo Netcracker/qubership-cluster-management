@@ -3,7 +3,7 @@
 ## Prerequisites
 
 For a fresh machine, follow [First run on Windows](getting-started.md) first. It includes installation links,
-PATH setup, Russia/restricted-network provider downloads, proxy/NO_PROXY, and the full first-run sequence for AWS/Azure.
+PATH setup, restricted-network provider downloads, proxy/NO_PROXY, and the full first-run sequence for AWS/Azure.
 This reference describes the AWS scripts and recovery in more detail.
 
 Run the commands from the repository root in PowerShell 7.
