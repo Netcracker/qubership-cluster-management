@@ -158,7 +158,7 @@ For `atmos terraform apply network -s customer1-aws-staging`:
 | One deployment's network CIDR | `components.terraform.network.vars` in its final stack |
 | Installation or deletion order | The customer's workflow |
 | Local Floci/UI lifecycle | `local/compose.yml` and the corresponding Start/Stop scripts |
-| Node and kubeconfig preparation | Prepare-Cluster.ps1 and functions in Local-Lab.psm1 |
+| Node and kubeconfig preparation | `prepare` in [local/lab.sh](../local/lab.sh) |
 
 ## Terraform components and dependencies
 
@@ -303,7 +303,7 @@ During destruction, the workflows delete the Kiali Custom Resource before uninst
 
 Run these commands from the repository root. Both were checked in this repository and do not apply resources:
 
-```powershell
+```bash
 atmos describe component kiali -s customer1-aws-staging --process-functions=false --format yaml
 atmos helmfile template kiali -s customer1-aws-staging --skip-deps
 ```
@@ -319,7 +319,7 @@ Helmfile rendering needs Helm, Helmfile, helm-diff, and chart availability as de
 Customer1 scenarios are defined in [aws.yaml](../workflows/customers/customer1/aws.yaml).
 
 ```text
-network → plan/apply Kubernetes → Prepare-Cluster → plan Nexus
+network → plan/apply Kubernetes → lab.sh prepare → plan Nexus
                                                   ↓
                                                parallel
                                                ├─ Nexus apply → readiness
@@ -359,7 +359,7 @@ Do not run concurrent workflows against the same stack. Team use requires a sepa
 
 Use these concrete commands to inspect the current AWS stack:
 
-```powershell
+```bash
 atmos validate stacks
 atmos describe component network -s customer1-aws-staging --process-functions=false
 ```

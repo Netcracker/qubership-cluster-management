@@ -7,5 +7,4 @@ vars:
 settings:
   local_lab: true
 env:
-  HTTPS_PROXY: http://127.0.0.1:12334
   NO_PROXY: localhost,127.0.0.1,::1,floci

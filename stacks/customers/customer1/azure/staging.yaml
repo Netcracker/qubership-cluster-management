@@ -14,7 +14,6 @@ vars:
 settings:
   local_azure_lab: true
 env:
-  HTTPS_PROXY: http://127.0.0.1:12334
   ARM_METADATA_HOSTNAME: localhost:4577
   ARM_USE_CLI: "false"
   ARM_SUBSCRIPTION_ID: 00000000-0000-0000-0000-000000000001

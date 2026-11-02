@@ -6,8 +6,9 @@ clouds, environments, and components can be added without copying an entire depl
 
 Current deployments are local laboratories backed by Floci. Deployment to real cloud accounts has not been verified.
 
-**New machine? Start with [First run on Windows](docs/getting-started.md).** It covers tool installation,
-PATH, local settings, restricted provider downloads/proxies, the exact script/workflow sequence, and shutdown.
+**New machine? Start with [First run](docs/getting-started.md).** It covers the tools image, native installation,
+restricted provider downloads/proxies, the exact command/workflow sequence, and shutdown.
+CI ([.github/workflows/ci.yml](.github/workflows/ci.yml)) builds the tools image and deploys/destroys every active stack on Floci.
 
 ## Architecture
 
@@ -107,7 +108,7 @@ local/
   compose.yml                AWS emulator and UI
   compose.azure.yml          Azure emulator
   settings.example.json      AWS local settings template
-  scripts/                   start/stop, cluster access, readiness, validation
+  lab.sh                     start/stop, cluster access, readiness, validation
 .local-runtime/              generated kubeconfigs and local runtime files
 docs/                        detailed reference guides
 ```
@@ -138,23 +139,22 @@ Its Helm releases and application HTTP responses have been checked locally.
 - The installed emulator omits some AKS properties when reading resources back. A subsequent Kubernetes plan has proposed cluster replacement. **Review the plan before repeating infrastructure apply.**
 - The local Azure stack disables the subnet role assignment because the emulator did not supply the required RBAC APIs. The Terraform module keeps role assignment enabled by default.
 - The load balancer backend is the local k3s Docker IP recorded in the stack. Recheck it after cluster recreation.
-- Azure Compose pins a nightly image by digest. Start-AzureLocal installs the emulator CA into the current Windows user's trusted root store.
+- Azure Compose pins a nightly image by digest. `lab.sh start-azure` installs the emulator CA into the system trust store.
 
 These local settings do not establish production readiness for Azure or the other clouds.
 
 ## Running the local environments
 
-Run commands from the repository root in **PowerShell 7**, with Docker Desktop's Linux engine running.
-Required tools are Atmos, Terraform, kubectl, Helm, Helmfile, and helm-diff; AWS also requires AWS CLI.
-Azure startup uses Windows `curl.exe` and the current user's certificate store.
-Internet access is needed for providers, charts, and container images.
-Review the configured proxy `127.0.0.1:12334` for your machine and bypass proxies for local endpoints.
-See [local development](docs/local-development.md) for AWS settings and script details.
+Run commands from the repository root in **bash** on a Linux Docker host, or inside the [tools image](Dockerfile)
+started with `--network host` (see [First run](docs/getting-started.md#2-tools)).
+Internet access is needed for providers, charts, and container images. Stacks do not set an outbound proxy:
+export HTTPS_PROXY in your shell if you need one, and keep local endpoints in NO_PROXY.
+See [local development](docs/local-development.md) for AWS settings and command details.
 
 ### AWS: customer1
 
-```powershell
-pwsh -NoProfile -File ./local/scripts/Start-Local.ps1
+```bash
+local/lab.sh start
 atmos workflow deploy-staging-no-hook -f customers/customer1/aws
 ```
 
@@ -163,8 +163,8 @@ Start only starts the emulator services; deployment creates customer resources.
 
 ### Azure: start and inspect
 
-```powershell
-pwsh -NoProfile -File ./local/scripts/Start-AzureLocal.ps1
+```bash
+local/lab.sh start-azure
 atmos workflow deploy-staging -f customers/customer1/azure --dry-run
 atmos terraform plan kubernetes -s customer1-azure-staging -input=false
 ```
@@ -174,13 +174,13 @@ The Kubernetes plan requires existing network state. For a fresh environment, ne
 Because of the AKS replacement limitation above, inspect the infrastructure plan before a full deployment again.
 For an existing cluster, refresh access and apply applications/load balancer without applying network or Kubernetes:
 
-```powershell
+```bash
 atmos workflow deploy-staging -f customers/customer1/azure --from-step access
 ```
 
 To open the Azure applications, run each command in a separate terminal and leave it running:
 
-```powershell
+```bash
 kubectl --kubeconfig ./.local-runtime/kubeconfig-customer1-azure-staging.yaml -n argocd port-forward svc/argocd-server 18080:80
 kubectl --kubeconfig ./.local-runtime/kubeconfig-customer1-azure-staging.yaml -n istio-system port-forward svc/kiali 18081:20001
 ```
@@ -195,18 +195,14 @@ Azure has sequential `destroy-staging`. Customer1 Terraform apply/destroy steps 
 
 AWS:
 
-```powershell
-atmos workflow destroy-staging-parallel -f customers/customer1/aws
-if ($LASTEXITCODE -ne 0) { throw 'Deletion failed. Floci has been left running.' }
-pwsh -NoProfile -File ./local/scripts/Stop-Local.ps1
+```bash
+atmos workflow destroy-staging-parallel -f customers/customer1/aws && local/lab.sh stop
 ```
 
 Azure:
 
-```powershell
-atmos workflow destroy-staging -f customers/customer1/azure
-if ($LASTEXITCODE -ne 0) { throw 'Deletion failed. Floci Azure has been left running.' }
-docker compose -f ./local/compose.azure.yml stop
+```bash
+atmos workflow destroy-staging -f customers/customer1/azure && docker compose -f local/compose.azure.yml stop
 ```
 
 Azure destroy and AWS parallel destroy have been checked with dry-run; real end-to-end deletion has not been verified.
@@ -227,7 +223,7 @@ Keep execution dependencies explicit: create inputs before their consumers, and 
 
 ## Further documentation
 
-- [First run on Windows](docs/getting-started.md): install tools, configure provider access, start, deploy, verify, and destroy.
+- [First run](docs/getting-started.md): install tools, configure provider access, start, deploy, verify, and destroy.
 - [Architecture reference](docs/architecture.md): Atmos discovery, imports, component contracts, state, Helmfile values, and AWS workflow internals. The Azure overview above reflects the newer local integration.
-- [Local development reference](docs/local-development.md): detailed AWS script responsibilities, prerequisites, readiness, access, and troubleshooting.
+- [Local development reference](docs/local-development.md): detailed AWS command responsibilities, prerequisites, readiness, access, and troubleshooting.
 - [Cloud preparation](docs/deployment.md): real-cloud preparation for Azure/GCP and load balancer inputs. Its inactive-Azure statements predate the local integration; use this README for current local Azure status.

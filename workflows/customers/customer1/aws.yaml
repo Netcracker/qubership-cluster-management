@@ -10,7 +10,7 @@ workflows:
     - name: kubernetes
       command: terraform apply kubernetes --from-plan -input=false -auto-approve
     - name: access
-      command: pwsh -NoProfile -File ./local/scripts/Prepare-Cluster.ps1 -Stack customer1-aws-staging
+      command: bash ./local/lab.sh prepare customer1-aws-staging
       type: shell
     - name: plan-nexus
       command: terraform plan nexus -input=false
@@ -64,7 +64,7 @@ workflows:
     - name: kubernetes
       command: terraform apply kubernetes --from-plan -input=false -auto-approve
     - name: access
-      command: pwsh -NoProfile -File ./local/scripts/Prepare-Cluster.ps1 -Stack customer1-aws-staging
+      command: bash ./local/lab.sh prepare customer1-aws-staging
       type: shell
     - name: plan-nexus
       command: terraform plan nexus -input=false
@@ -91,7 +91,7 @@ workflows:
       command: terraform apply nexus --from-plan -input=false -auto-approve --skip-hooks=nexus-ready
     - name: endpoint
       type: shell
-      command: pwsh -NoProfile -File ./local/scripts/Get-NexusEndpoint.ps1 -Stack customer1-aws-staging
+      command: bash ./local/lab.sh nexus-endpoint customer1-aws-staging
       retry:
         max_attempts: 60
         max_elapsed_time: 5m

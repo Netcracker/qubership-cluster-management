@@ -28,7 +28,7 @@ The source project has not been modified.
 | Discovery and stack names | [atmos.yaml](../../atmos.yaml) |
 | Customer configuration | [AWS staging](../../stacks/customers/customer1/aws/staging.yaml), [Azure staging](../../stacks/customers/customer1/azure/staging.yaml), and their imported defaults/catalogs |
 | Execution and deletion | [AWS workflows](../../workflows/customers/customer1/aws.yaml), [Azure workflows](../../workflows/customers/customer1/azure.yaml) |
-| Nexus readiness | [Nexus catalog/hook](../../stacks/catalog/aws/nexus.yaml), [endpoint script](../../local/scripts/Get-NexusEndpoint.ps1) |
+| Nexus readiness | [Nexus catalog/hook](../../stacks/catalog/aws/nexus.yaml), [endpoint command](../../local/lab.sh) |
 | AWS routing | [load-balancer implementation](../../components/terraform/aws/load-balancer/) |
 | Shared applications | [Helmfile implementations](../../components/helmfile/), [Helmfile catalogs](../../stacks/catalog/helmfile/) |
 | Emulator lifecycle | [AWS Compose](../../local/compose.yml), [Azure Compose](../../local/compose.azure.yml), [local scripts](../../local/scripts/) |

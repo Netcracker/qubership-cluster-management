@@ -9,7 +9,7 @@ workflows:
         command: terraform apply kubernetes -input=false -auto-approve
       - name: access
         type: shell
-        command: pwsh -NoProfile -File ./local/scripts/Prepare-AzureCluster.ps1 -Stack customer1-azure-staging
+        command: bash ./local/lab.sh prepare-azure customer1-azure-staging
       - name: istio
         command: helmfile apply istio
       - name: argocd

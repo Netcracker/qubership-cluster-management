@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.ref.outputs.image }}
+    steps:
+      - name: Build and publish tools image
+        id: build
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1 # v2.8.2
+        with:
+          custom-image-name: ${{ github.event.repository.name }}-tools
+          tags: ${{ github.sha }}${{ github.ref == 'refs/heads/main' && ',latest' || '' }}
+          setup-qemu: "false"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Image reference
+        id: ref
+        env:
+          TAGS: ${{ steps.build.outputs.final-tags }}
+        run: echo "image=${TAGS%%,*}" >> "$GITHUB_OUTPUT"
+
+  validate:
+    needs: image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate stacks and Terraform modules
+        env:
+          IMAGE: ${{ needs.image.outputs.image }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker run --rm -v "$PWD:$PWD" -w "$PWD" "$IMAGE" bash ./local/lab.sh check --init
+
+  deploy:
+    needs: [image, validate]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - stack: customer1-aws-staging
+            start: start
+            workflows: customers/customer1/aws
+            deploy: deploy-staging-no-hook
+            destroy: destroy-staging-parallel
+          - stack: customer2-aws-staging
+            start: start
+            workflows: customers/customer2/aws
+            deploy: deploy-staging
+            destroy: ""
+          - stack: customer1-azure-staging
+            start: start-azure
+            workflows: customers/customer1/azure
+            deploy: deploy-staging
+            destroy: destroy-staging
+    name: deploy (${{ matrix.stack }})
+    env:
+      IMAGE: ${{ needs.image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start tools container
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Host network: scripts reach Floci and k3s via localhost and Docker network IPs.
+        # Same workspace path: Compose bind mounts are resolved by the host daemon.
+        run: |
+          echo "$TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker run -d --name tools --network host \
+            -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:$PWD" -w "$PWD" \
+            -e ATMOS_COMPONENTS_TERRAFORM_APPLY_AUTO_APPROVE=true \
+            "$IMAGE" sleep infinity
+      - name: Start emulator
+        run: docker exec tools bash ./local/lab.sh ${{ matrix.start }}
+      - name: Deploy
+        run: docker exec tools atmos workflow ${{ matrix.deploy }} -f ${{ matrix.workflows }}
+      - name: Check cluster
+        run: |
+          docker exec tools kubectl --kubeconfig .local-runtime/kubeconfig-${{ matrix.stack }}.yaml get pods -A
+          docker exec tools helm --kubeconfig .local-runtime/kubeconfig-${{ matrix.stack }}.yaml list -A
+      - name: Destroy
+        if: matrix.destroy != ''
+        run: docker exec tools atmos workflow ${{ matrix.destroy }} -f ${{ matrix.workflows }}
+      - name: Diagnostics
+        if: failure()
+        run: |
+          docker ps -a
+          docker exec tools kubectl --kubeconfig .local-runtime/kubeconfig-${{ matrix.stack }}.yaml get pods -A -o wide || true
+          docker exec tools kubectl --kubeconfig .local-runtime/kubeconfig-${{ matrix.stack }}.yaml get events -A --sort-by=.lastTimestamp || true

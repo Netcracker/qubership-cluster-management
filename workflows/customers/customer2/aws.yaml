@@ -7,7 +7,7 @@ workflows:
     - command: terraform apply kubernetes
       name: kubernetes
     - type: shell
-      command: pwsh -NoProfile -File ./local/scripts/Prepare-Cluster.ps1 -Stack customer2-aws-staging
+      command: bash ./local/lab.sh prepare customer2-aws-staging
       name: access
     - command: helmfile apply istio
       name: istio

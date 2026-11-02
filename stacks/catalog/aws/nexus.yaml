@@ -17,7 +17,7 @@ components:
             - name: endpoint
               type: shell
               working_directory: .
-              command: pwsh -NoProfile -File ./local/scripts/Get-NexusEndpoint.ps1 -Stack "{{ .stack }}"
+              command: bash ./local/lab.sh nexus-endpoint "{{ .stack }}"
               output: capture
               timeout: 90s
             - name: nexus-ready
