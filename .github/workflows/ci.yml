@@ -44,7 +44,7 @@ jobs:
       contents: read
       packages: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Validate stacks and Terraform modules
         env:
           IMAGE: ${{ needs.image.outputs.image }}
@@ -82,7 +82,7 @@ jobs:
     env:
       IMAGE: ${{ needs.image.outputs.image }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Start tools container
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
