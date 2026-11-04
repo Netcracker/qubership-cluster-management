@@ -64,6 +64,7 @@ Run the remaining commands in that shell.
 | helm-diff | 3.15.13 | Helmfile change detection |
 | Helmfile | 1.8.1 | Application releases |
 | AWS CLI | 2.37.9 | AWS API/EKS tokens; AWS lab only |
+| Kubemarine | 0.55.0 | Manual Kubemarine procedures; the `kubemarine` component installs its own copy on the jump host |
 | jq, curl | distribution | Script dependencies |
 
 The [Dockerfile](../Dockerfile) shows the exact download URLs. Install helm-diff after Helm:

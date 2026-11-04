@@ -1,0 +1,15 @@
+# VMs for a Kubemarine-installed cluster; import together with catalog/kubemarine.
+components:
+  terraform:
+    vms:
+      metadata:
+        component: gcp/vms
+      vars:
+        vpc_id: !terraform.state network vpc_id
+        subnet_ids: !terraform.state network subnet_ids
+        nodes:
+          control-plane-1: { roles: [control-plane], instance_type: e2-standard-4, subnet: main }
+          control-plane-2: { roles: [control-plane], instance_type: e2-standard-4, subnet: main }
+          control-plane-3: { roles: [control-plane], instance_type: e2-standard-4, subnet: main }
+          worker-1: { roles: [worker], instance_type: e2-standard-4, subnet: main }
+          worker-2: { roles: [worker], instance_type: e2-standard-4, subnet: main }

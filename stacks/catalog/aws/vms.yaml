@@ -1,0 +1,16 @@
+# VMs for a Kubemarine-installed cluster; import together with catalog/kubemarine.
+components:
+  terraform:
+    vms:
+      metadata:
+        component: aws/vms
+      vars:
+        vpc_id: !terraform.state network vpc_id
+        subnet_ids: !terraform.state network subnet_ids
+        ami_id: ami-ubuntu2204
+        nodes:
+          control-plane-1: { roles: [control-plane], instance_type: m5.xlarge, subnet: a }
+          control-plane-2: { roles: [control-plane], instance_type: m5.xlarge, subnet: b }
+          control-plane-3: { roles: [control-plane], instance_type: m5.xlarge, subnet: a }
+          worker-1: { roles: [worker], instance_type: m5.xlarge, subnet: a }
+          worker-2: { roles: [worker], instance_type: m5.xlarge, subnet: b }

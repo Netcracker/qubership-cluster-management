@@ -1,0 +1,21 @@
+# VMs for a Kubemarine-installed cluster; import together with catalog/kubemarine.
+components:
+  terraform:
+    vms:
+      metadata:
+        component: azure/vms
+      vars:
+        resource_group_name: !terraform.state network resource_group_name
+        subnet_ids: !terraform.state network subnet_ids
+        nodes:
+          control-plane-1: { roles: [control-plane], instance_type: Standard_D4s_v5, subnet: kubernetes }
+          control-plane-2: { roles: [control-plane], instance_type: Standard_D4s_v5, subnet: kubernetes }
+          control-plane-3: { roles: [control-plane], instance_type: Standard_D4s_v5, subnet: kubernetes }
+          worker-1: { roles: [worker], instance_type: Standard_D4s_v5, subnet: kubernetes }
+          worker-2: { roles: [worker], instance_type: Standard_D4s_v5, subnet: kubernetes }
+    kubemarine:
+      vars:
+        kubemarine:
+          plugins:
+            calico:
+              mode: vxlan # Azure drops IPIP

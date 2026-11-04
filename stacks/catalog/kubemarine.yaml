@@ -1,0 +1,10 @@
+# Kubernetes on the VMs of any <cloud>/vms catalog, installed by Kubemarine from that component's jump host.
+components:
+  terraform:
+    kubemarine:
+      metadata:
+        component: kubemarine
+      vars:
+        nodes: !terraform.state vms nodes
+        jump_host: !terraform.state vms jump_host
+        ssh_private_key: !terraform.state vms ssh_private_key

@@ -4,7 +4,7 @@
 
 Atmos combines customer and environment parameters with reusable components and executes deployment workflows.
 Terraform manages infrastructure; Helmfile manages Helm releases inside Kubernetes.
-This repository currently contains the Terraform/Helmfile project, without Kubemarine integration.
+This repository contains the Terraform/Helmfile project; Kubemarine installs Kubernetes on VMs of any cloud (`<cloud>/vms` + `kubemarine`).
 
 AWS is used locally through Floci. Azure/GCP implementations and stack templates exist, but cloud end-to-end deployment has not been verified.
 The AWS Kubernetes module creates EKS/IAM resources; Floci provides the local k3s node.
@@ -53,9 +53,10 @@ Changing an implementation affects every stack using that implementation.
 atmos.yaml
 components/
   terraform/
-    aws/{network,kubernetes,load-balancer,nexus}/
-    azure/{network,kubernetes,load-balancer}/
-    gcp/{network,kubernetes,load-balancer}/
+    aws/{network,kubernetes,load-balancer,nexus,vms}/
+    azure/{network,kubernetes,load-balancer,vms}/
+    gcp/{network,kubernetes,load-balancer,vms}/
+    kubemarine/
   helmfile/
     argocd/{helmfile.yaml.gotmpl,values.yaml.gotmpl}
     istio/{helmfile.yaml.gotmpl,values-base.yaml.gotmpl,values-istiod.yaml.gotmpl}
@@ -170,18 +171,50 @@ Dependencies are passed as input identifiers rather than by including another co
 | AWS network | VPC, subnets, gateway, routes; exports vpc_id and subnet_ids |
 | AWS kubernetes | EKS/IAM; consumes network subnet_ids |
 | AWS nexus | VM and access rules; consumes the VPC and one subnet |
+| AWS vms | EC2 VMs with Kubemarine roles, generated key pair, security groups, optional jump host |
 | AWS load-balancer | ALB, target groups, rules, attachments; reads network, EC2 node, and existing Kubernetes Services |
 | Azure network | Resource group, VNet, subnets |
 | Azure kubernetes | AKS, identity, and subnet permissions |
 | Azure load-balancer | Standard TCP LB with explicitly configured backend addresses |
+| Azure vms | Linux VMs with Kubemarine roles, public IPs, NSGs, optional jump host; consumes network resource group and subnets |
 | GCP network | VPC, subnet, secondary ranges |
 | GCP kubernetes | GKE, service account, node pool; consumes network configuration |
 | GCP load-balancer | Regional passthrough TCP LB with explicitly configured backend VMs |
+| GCP vms | Compute instances with Kubemarine roles, firewall rules by tag, optional jump host; consumes network VPC and subnets |
+| kubemarine | Cloud-independent: builds `cluster.yaml` from any `vms` outputs and runs `kubemarine install` on the jump host over SSH |
 
 Matching component names do not imply identical cloud capabilities. See each module's variables.tf and outputs.tf for its contract.
 AWS catalogs use `!terraform.state`: Kubernetes reads network subnet_ids, Nexus reads vpc_id and `.subnet_ids.a`,
 and ALB reads the VPC and all subnets. Therefore, network is created first and deleted last.
 Access preparation follows Kubernetes; applications follow access; ALB follows applications.
+
+### Kubernetes on VMs (Kubemarine)
+
+A stack imports `catalog/<cloud>/vms` and `catalog/kubemarine` instead of `catalog/<cloud>/kubernetes`.
+Every `<cloud>/vms` component creates the VMs, an SSH key and, while `jump_host_enabled=true`, a jump host inside the
+node network, and exports the same outputs: `nodes` (name, Kubemarine roles, public and private address), `jump_host`
+(address, user, or null) and `ssh_private_key`. The `kubemarine` component knows nothing about the cloud: it builds
+`cluster.yaml` from these outputs, copies it and the key to the jump host and runs
+[Kubemarine](https://github.com/Netcracker/kubemarine) there. Installation is three applies:
+
+```bash
+atmos terraform apply vms -s <stack> -var jump_host_enabled=true  # 1. VMs + jump host
+atmos terraform apply kubemarine -s <stack>                        # 2. kubemarine install, output streamed to the apply
+atmos terraform apply vms -s <stack>                               # 3. destroy the jump host
+```
+
+`vars.kubemarine` of the `kubemarine` component is merged over the generated `cluster.yaml` fields (`cluster_name`,
+`services`, `plugins`, ...); nodes get `connect_to` set to the private address. Step 2 runs again only when the
+inventory or `kubemarine_version` changes. A cloud's specifics stay in its catalog: `catalog/azure/vms` switches Calico
+to VXLAN because Azure drops IPIP. Another provider (OpenStack, vSphere, existing hosts) needs only a component with
+the same three outputs, or `nodes`/`jump_host`/`ssh_private_key` set directly in the stack.
+
+Node SSH is open only to the jump host; the jump host SSH, ingress ports and the API are open to `admin_cidrs`.
+Nodes keep public addresses because the networks have no NAT. The key is in Terraform state
+(`terraform output -raw ssh_private_key` to log in), so the state must be protected.
+
+Clouds do not support VRRP floating IPs; without `vrrp_ips`, Kubemarine uses a balancer (or first control-plane) node
+address for the API. Floci creates the instances but does not run them, so step 2 needs real VMs.
 
 ## Helmfile and stack values
 

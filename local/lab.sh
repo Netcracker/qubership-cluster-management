@@ -258,6 +258,7 @@ cmd_check() {
     for module in $(find components/terraform -name versions.tf -not -path '*/.terraform/*' -exec dirname {} \;); do
         if $init; then terraform -chdir="$module" init -backend=false -input=false -no-color; fi
         terraform -chdir="$module" validate -no-color
+        if $init && [[ -d $module/tests ]]; then terraform -chdir="$module" test -no-color; fi
     done
     bash -n local/lab.sh
     if $render; then

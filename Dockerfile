@@ -9,9 +9,10 @@ ARG HELM_VERSION=4.3.1
 ARG HELM_DIFF_VERSION=3.15.13
 ARG HELMFILE_VERSION=1.8.1
 ARG AWSCLI_VERSION=2.37.9
+ARG KUBEMARINE_VERSION=0.55.0
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl git jq unzip less \
+ && apt-get install -y --no-install-recommends ca-certificates curl git jq unzip less openssh-client python3-venv \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=docker /usr/local/bin/docker /usr/local/bin/docker
@@ -29,6 +30,11 @@ RUN set -eux; cd /tmp \
  && unzip -q aws.zip && ./aws/install \
  && helm plugin install https://github.com/databus23/helm-diff --version "v${HELM_DIFF_VERSION}" --verify=false \
  && rm -rf /tmp/*
+
+# Kubemarine installs Kubernetes on VMs from aws/vms; a venv keeps its pinned dependencies apart.
+RUN python3 -m venv /opt/kubemarine \
+ && /opt/kubemarine/bin/pip install --no-cache-dir "kubemarine==${KUBEMARINE_VERSION}" \
+ && ln -s /opt/kubemarine/bin/kubemarine /usr/local/bin/kubemarine
 
 WORKDIR /workspace
 CMD ["bash"]
