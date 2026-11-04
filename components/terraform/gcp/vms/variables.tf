@@ -7,6 +7,10 @@ variable "cloud" {
 variable "environment" { type = string }
 variable "region" { type = string }
 variable "project_id" { type = string }
+variable "name" {
+  description = "Group name: resource name prefix and network tag"
+  type        = string
+}
 
 variable "location" {
   description = "Zone for the VMs"
@@ -19,27 +23,32 @@ variable "subnet_ids" {
 }
 variable "image" {
   type    = string
-  default = "ubuntu-os-cloud/ubuntu-2204-lts"
+  default = "ubuntu-os-cloud/ubuntu-2404-lts-amd64"
 }
-variable "admin_cidrs" {
-  description = "Sources allowed to reach the jump host SSH, the Kubernetes API and ingress ports"
-  type        = list(string)
+variable "ssh_public_key" {
+  description = "Public half of the SOPS-stored key (TF_VAR_ssh_public_key from sops exec-env)"
+  type        = string
 }
-variable "nodes" {
-  description = "VMs by name; roles are Kubemarine roles; instance_type is the machine type"
+variable "vms" {
+  description = "VMs by name; roles are Kubemarine roles or empty; instance_type is the machine type"
   type = map(object({
-    roles         = list(string)
+    roles         = optional(list(string), [])
     instance_type = string
     subnet        = string
     volume_size   = optional(number, 50)
   }))
-  validation {
-    condition     = !contains(keys(var.nodes), "jump")
-    error_message = "The node name jump is reserved for the jump host."
-  }
 }
-variable "jump_host_enabled" {
-  description = "true creates the jump host the kubemarine component installs from; false destroys it"
+variable "public" {
+  description = "Give the VMs external IPs"
   type        = bool
   default     = false
+}
+variable "ports" {
+  description = "TCP ports open to allowed_cidrs"
+  type        = list(number)
+  default     = [22]
+}
+variable "allowed_cidrs" {
+  description = "Sources for ports: the subnet CIDR for private groups, operator CIDRs for the jump host"
+  type        = list(string)
 }

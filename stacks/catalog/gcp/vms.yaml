@@ -1,13 +1,44 @@
-# VMs for a Kubemarine-installed cluster; import together with catalog/kubemarine.
+# VM installation (docs/vm-installation.md): jump host, Nexus and cluster nodes, three groups of gcp/vms.
+# Import together with catalog/kubemarine. The stack sets the jump host's allowed_cidrs (operator addresses).
+# Only the jump host gets an external IP; without Cloud NAT the other VMs have no Internet access.
 components:
   terraform:
-    vms:
+    vm-group:
       metadata:
+        type: abstract
         component: gcp/vms
       vars:
         vpc_id: !terraform.state network vpc_id
         subnet_ids: !terraform.state network subnet_ids
-        nodes:
+    jump-host:
+      metadata:
+        component: gcp/vms
+        inherits: [vm-group]
+      vars:
+        name: jump
+        public: true
+        ports: [22]
+        vms:
+          jump: { instance_type: e2-small, subnet: main, volume_size: 20 }
+    nexus:
+      metadata:
+        component: gcp/vms
+        inherits: [vm-group]
+      vars:
+        name: nexus
+        ports: [22, 8081, 8082]
+        allowed_cidrs: [!terraform.state network vpc_cidr]
+        vms:
+          nexus: { instance_type: e2-standard-2, subnet: main, volume_size: 200 }
+    vms:
+      metadata:
+        component: gcp/vms
+        inherits: [vm-group]
+      vars:
+        name: nodes
+        ports: [22, 80, 443, 6443]
+        allowed_cidrs: [!terraform.state network vpc_cidr]
+        vms:
           control-plane-1: { roles: [control-plane], instance_type: e2-standard-4, subnet: main }
           control-plane-2: { roles: [control-plane], instance_type: e2-standard-4, subnet: main }
           control-plane-3: { roles: [control-plane], instance_type: e2-standard-4, subnet: main }

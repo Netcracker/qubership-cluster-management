@@ -21,5 +21,9 @@ variable "region" { type = string }
 
 variable "vpc_cidr" { type = string }
 variable "subnets" {
-  type = map(object({ cidr_block = string }))
+  description = "public = false turns off default outbound Internet access for VMs without public IPs"
+  type = map(object({
+    cidr_block = string
+    public     = optional(bool, true)
+  }))
 }

@@ -18,31 +18,49 @@ variable "cloud" {
 
 variable "environment" { type = string }
 variable "region" { type = string }
+variable "name" {
+  description = "Group name: resource name prefix and the first Role tag"
+  type        = string
+}
 
 variable "resource_group_name" { type = string }
 variable "subnet_ids" {
   description = "Subnet IDs by key, as output by the network component"
   type        = map(string)
 }
-variable "admin_cidrs" {
-  description = "Sources allowed to reach the jump host SSH, the Kubernetes API and ingress ports"
-  type        = list(string)
+variable "image" {
+  type = object({ publisher = string, offer = string, sku = string, version = string })
+  default = {
+    publisher = "Canonical"
+    offer     = "ubuntu-24_04-lts"
+    sku       = "server"
+    version   = "latest"
+  }
 }
-variable "nodes" {
-  description = "VMs by name; roles are Kubemarine roles; instance_type is the VM size"
+variable "ssh_public_key" {
+  description = "Public half of the SOPS-stored key (TF_VAR_ssh_public_key from sops exec-env)"
+  type        = string
+}
+variable "vms" {
+  description = "VMs by name; roles are Kubemarine roles or empty; instance_type is the VM size"
   type = map(object({
-    roles         = list(string)
+    roles         = optional(list(string), [])
     instance_type = string
     subnet        = string
     volume_size   = optional(number, 50)
   }))
-  validation {
-    condition     = !contains(keys(var.nodes), "jump")
-    error_message = "The node name jump is reserved for the jump host."
-  }
 }
-variable "jump_host_enabled" {
-  description = "true creates the jump host the kubemarine component installs from; false destroys it"
+variable "public" {
+  description = "Give the VMs public IPs"
   type        = bool
   default     = false
+}
+variable "ports" {
+  description = "TCP ports open to allowed_cidrs"
+  type        = list(number)
+  default     = [22]
+}
+variable "allowed_cidrs" {
+  description = "Sources for ports: the VNet CIDR for private groups, operator CIDRs for the jump host"
+  type        = list(string)
 }

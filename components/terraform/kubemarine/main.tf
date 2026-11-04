@@ -1,49 +1,71 @@
 locals {
-  workdir = "/var/lib/kubemarine"
+  # Repository names and ports created by bundle/load.sh.
+  nexus_files  = "http://${var.nexus_address}:8081/repository/bundle"
+  nexus_images = "http://${var.nexus_address}:8082"
 
   cluster = merge(
     { cluster_name = "${var.environment}.local" },
     var.kubemarine,
     {
-      node_defaults = merge({ username = "ubuntu" }, try(var.kubemarine.node_defaults, {}), { keyfile = "${local.workdir}/ssh_key" })
-      nodes         = [for node in var.nodes : merge(node, { connect_to = node.internal_address })]
+      node_defaults = merge(try(var.kubemarine.node_defaults, {}), { username = var.ssh_user, gateway = "jump" })
+      gateway_nodes = [{ name = "jump", address = var.jump_host.address, username = var.ssh_user }]
+      nodes = [
+        for node in var.nodes : {
+          name             = node.name
+          address          = node.internal_address
+          internal_address = node.internal_address
+          roles            = node.roles
+        }
+      ]
+      # Kubemarine's own images and binaries: <mirror>/kube-apiserver, <files>/kubernetes/kubeadm/..., see bundle/manifest.yaml.
+      registry = {
+        endpoints       = [local.nexus_images]
+        mirror_registry = "registry.cluster.local"
+        thirdparties    = "${local.nexus_files}/files"
+      }
+      services = merge(try(var.kubemarine.services, {}), {
+        packages = merge(try(var.kubemarine.services.packages, {}), {
+          package_manager = {
+            replace-repositories = true
+            repositories         = ["deb [trusted=yes] ${local.nexus_files}/apt ./"]
+          }
+        })
+        cri = merge(try(var.kubemarine.services.cri, {}), {
+          containerdRegistriesConfig = {
+            for registry in var.mirrored_registries : registry => {
+              "host.\"${local.nexus_images}/v2/${registry}\"" = { capabilities = ["pull", "resolve"], override_path = true }
+            }
+          }
+        })
+      })
     }
   )
+
+  workdir = abspath("${path.root}/../../../.local-runtime/kubemarine/${var.environment}")
+  keyfile = "${local.workdir}/id_ed25519"
 }
 
-# Reinstalls only when the inventory or version changes; a new jump host alone does not trigger it.
+# Runs once per environment: later inventory changes go through Kubemarine procedures (add_node, upgrade, ...);
+# reinstall with -replace=terraform_data.install. Runs in the tools image, where kubemarine is installed.
 resource "terraform_data" "install" {
-  triggers_replace = [sha256(yamlencode(local.cluster)), var.kubemarine_version]
+  triggers_replace = [var.environment]
 
-  connection {
-    host        = try(var.jump_host.address, null)
-    user        = try(var.jump_host.user, null)
-    private_key = var.ssh_private_key
-    timeout     = "10m"
-  }
-
-  provisioner "file" {
-    content     = yamlencode(local.cluster)
-    destination = "/tmp/cluster.yaml"
-  }
-
-  provisioner "file" {
-    content     = var.ssh_private_key
-    destination = "/tmp/kubemarine_ssh_key"
-  }
-
-  # ponytail: apt assumes a Debian/Ubuntu jump host; add a package-manager switch when another image is needed.
-  provisioner "remote-exec" {
-    inline = [
-      "set -eu",
-      "cloud-init status --wait >/dev/null 2>&1 || true",
-      "sudo install -d -o \"$(id -u)\" ${local.workdir}",
-      "install -m 600 /tmp/kubemarine_ssh_key ${local.workdir}/ssh_key && rm /tmp/kubemarine_ssh_key",
-      "mv /tmp/cluster.yaml ${local.workdir}/cluster.yaml",
-      "sudo apt-get update -q && sudo apt-get -o DPkg::Lock::Timeout=180 install -y -q python3-venv",
-      "python3 -m venv ${local.workdir}/venv",
-      "${local.workdir}/venv/bin/pip install -q 'kubemarine==${var.kubemarine_version}'",
-      "cd ${local.workdir} && venv/bin/kubemarine install --config cluster.yaml",
-    ]
+  provisioner "local-exec" {
+    interpreter = ["bash", "-c"]
+    command     = <<-EOT
+      set -eu
+      mkdir -p '${local.workdir}' && cd '${local.workdir}'
+      trap 'rm -f id_ed25519' EXIT
+      (umask 077 && printf '%s\n' "$SSH_PRIVATE_KEY" > id_ed25519)
+      printf '%s' "$CLUSTER_YAML" > cluster.yaml
+      kubemarine install --config cluster.yaml
+    EOT
+    environment = {
+      SSH_PRIVATE_KEY = var.ssh_private_key
+      CLUSTER_YAML = yamlencode(merge(local.cluster, {
+        node_defaults = merge(local.cluster.node_defaults, { keyfile = local.keyfile })
+        gateway_nodes = [merge(local.cluster.gateway_nodes[0], { keyfile = local.keyfile })]
+      }))
+    }
   }
 }

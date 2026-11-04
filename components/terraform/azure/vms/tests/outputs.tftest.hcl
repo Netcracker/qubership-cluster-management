@@ -16,39 +16,40 @@ mock_provider "azurerm" {
 variables {
   environment         = "t-s"
   region              = "northeurope"
+  name                = "nodes"
   resource_group_name = "rg"
   subnet_ids          = { a = "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg/providers/Microsoft.Network/virtualNetworks/vnet/subnets/a" }
-  admin_cidrs         = ["10.0.0.0/8"]
-  nodes = {
+  ssh_public_key      = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICeTO2fHfUH3mH3AHcLdWKcWLFOtDcaTzcZE0SEVNmPm test"
+  allowed_cidrs       = ["10.0.0.0/16"]
+  vms = {
     cp-1 = { roles = ["control-plane", "worker"], instance_type = "Standard_D4s_v5", subnet = "a" }
   }
 }
 
-run "without_jump_host" {
+run "private" {
   assert {
-    condition = jsonencode(output.nodes) == jsonencode([{
-      address          = "203.0.113.5"
+    condition = jsonencode(output.vms) == jsonencode([{
+      address          = "10.0.0.5"
       internal_address = "10.0.0.5"
       name             = "cp-1"
       roles            = ["control-plane", "worker"]
     }])
-    error_message = "Unexpected nodes output: ${jsonencode(output.nodes)}"
+    error_message = "Unexpected vms output: ${jsonencode(output.vms)}"
   }
 
   assert {
-    condition     = output.jump_host == null && length(azurerm_linux_virtual_machine.vm) == 1
-    error_message = "Jump host must exist only while jump_host_enabled is true"
+    condition     = length(azurerm_public_ip.vm) == 0
+    error_message = "A private group gets no public IPs"
   }
 }
 
-run "with_jump_host" {
+run "public" {
   variables {
-    jump_host_enabled = true
+    public = true
   }
 
   assert {
-    condition     = output.jump_host == { address = "203.0.113.5", user = "ubuntu" }
-    error_message = "jump_host_enabled must create the jump host"
+    condition     = output.vms[0].address == "203.0.113.5"
+    error_message = "A public group reports its public address"
   }
-
 }

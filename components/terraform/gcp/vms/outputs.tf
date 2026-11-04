@@ -1,21 +1,11 @@
-# Same outputs in every <cloud>/vms component; the kubemarine component consumes them.
-output "nodes" {
+# Same output in every <cloud>/vms component; the kubemarine component and local/lab.sh consume it.
+output "vms" {
   value = [
-    for name, node in var.nodes : {
+    for name, vm in var.vms : {
       name             = name
-      roles            = node.roles
-      address          = google_compute_instance.vm[name].network_interface[0].access_config[0].nat_ip
+      roles            = vm.roles
+      address          = var.public ? google_compute_instance.vm[name].network_interface[0].access_config[0].nat_ip : google_compute_instance.vm[name].network_interface[0].network_ip
       internal_address = google_compute_instance.vm[name].network_interface[0].network_ip
     }
   ]
-}
-
-output "jump_host" {
-  value = var.jump_host_enabled ? { address = google_compute_instance.vm["jump"].network_interface[0].access_config[0].nat_ip, user = "ubuntu" } : null
-}
-
-output "ssh_private_key" {
-  description = "Key for the ubuntu user on the jump host and the nodes"
-  value       = tls_private_key.nodes.private_key_openssh
-  sensitive   = true
 }

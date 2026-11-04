@@ -5,15 +5,22 @@ variable "cloud" {
 }
 
 variable "tenant" {
-  type = string
+  type    = string
+  default = null
 }
 
 variable "stage" {
-  type = string
+  type    = string
+  default = null
 }
 
 variable "environment" {
   type = string
+}
+
+variable "name" {
+  description = "Group name: resource name prefix and the first Role tag"
+  type        = string
 }
 
 variable "vpc_id" {
@@ -29,25 +36,36 @@ variable "ami_id" {
   type = string
 }
 
-variable "admin_cidrs" {
-  description = "Sources allowed to reach the jump host SSH, the Kubernetes API and ingress ports"
-  type        = list(string)
+variable "ssh_public_key" {
+  description = "Public half of the SOPS-stored key (TF_VAR_ssh_public_key from sops exec-env)"
+  type        = string
 }
 
-variable "nodes" {
-  description = "VMs by name; roles are Kubemarine roles: balancer, control-plane, worker"
+variable "vms" {
+  description = "VMs by name; roles are Kubemarine roles (balancer, control-plane, worker) or empty"
   type = map(object({
-    roles         = list(string)
+    roles         = optional(list(string), [])
     instance_type = string
     subnet        = string
     volume_size   = optional(number, 50)
   }))
 }
 
-variable "jump_host_enabled" {
-  description = "true creates the jump host the kubemarine component installs from; false destroys it"
+variable "public" {
+  description = "Give the VMs public IPs; the subnet must route to the Internet"
   type        = bool
   default     = false
+}
+
+variable "ports" {
+  description = "TCP ports open to allowed_cidrs"
+  type        = list(number)
+  default     = [22]
+}
+
+variable "allowed_cidrs" {
+  description = "Sources for ports: the VPC CIDR for private groups, operator CIDRs for the jump host"
+  type        = list(string)
 }
 
 variable "region" {

@@ -1,10 +1,21 @@
-# Kubernetes on the VMs of any <cloud>/vms catalog, installed by Kubemarine from that component's jump host.
+# Kubernetes on the VMs of a catalog/<cloud>/vms, installed by Kubemarine from the operator machine through the
+# jump host, with everything taken from Nexus (docs/vm-installation.md). Helmfile reaches Nexus and the API through
+# the SOCKS tunnel of local/lab.sh; the proxy port below and settings.tunnel_port must match.
 components:
   terraform:
     kubemarine:
       metadata:
         component: kubemarine
+      settings:
+        tunnel_port: 1080
       vars:
-        nodes: !terraform.state vms nodes
-        jump_host: !terraform.state vms jump_host
-        ssh_private_key: !terraform.state vms ssh_private_key
+        nodes: !terraform.state vms .vms
+        jump_host: !terraform.state jump-host '.vms[0]'
+        nexus_address: !terraform.state nexus '.vms[0].internal_address'
+        mirrored_registries: !include bundle/manifest.yaml '[.app_images[] | split("/")[0]] | unique'
+helmfile:
+  vars:
+    nexus_charts: !terraform.state nexus '"http://" + .vms[0].internal_address + ":8081/repository/bundle/charts"'
+  env:
+    HTTP_PROXY: socks5://127.0.0.1:1080
+    HTTPS_PROXY: socks5://127.0.0.1:1080

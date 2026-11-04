@@ -3,7 +3,8 @@
     "helmfile": {
       "minio": {
         "vars": {
-          "chart_version": "5.4.0",
+          "chart_version": !include bundle/manifest.yaml .charts.minio.version,
+          "chart_repository": !include bundle/manifest.yaml .charts.minio.repository,
           "values": {
             "mode": "standalone",
             "image": {

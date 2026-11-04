@@ -29,27 +29,35 @@ variable "nodes" {
 }
 
 variable "jump_host" {
-  description = "SSH host inside the node network that runs Kubemarine; null once the jump host is destroyed"
+  description = "Jump host VM (any <cloud>/vms output entry); Kubemarine reaches the nodes through it"
   type = object({
     address = string
-    user    = string
   })
-  default = null
+}
+
+variable "nexus_address" {
+  description = "Private address of the Nexus VM loaded by bundle/load.sh"
+  type        = string
+}
+
+variable "mirrored_registries" {
+  description = "Registries of application images; containerd pulls <registry>/<path> from Nexus (bundle/manifest.yaml app_images)"
+  type        = list(string)
+}
+
+variable "ssh_user" {
+  type    = string
+  default = "ubuntu"
 }
 
 variable "ssh_private_key" {
-  description = "Key for the jump host and the nodes"
+  description = "Key for the jump host and the nodes (TF_VAR_ssh_private_key from sops exec-env)"
   type        = string
   sensitive   = true
 }
 
 variable "kubemarine" {
-  description = "Extra cluster.yaml fields (cluster_name, node_defaults, services, plugins, ...) merged over the generated ones"
+  description = "Extra cluster.yaml fields (cluster_name, services, plugins, ...) merged over the generated ones"
   type        = any
   default     = {}
-}
-
-variable "kubemarine_version" {
-  type    = string
-  default = "0.55.0"
 }
