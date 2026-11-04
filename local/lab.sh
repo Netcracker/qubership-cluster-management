@@ -342,6 +342,14 @@ cmd_nexus_load() {
     NEXUS_URL=http://$NEXUS:8081 bundle/load.sh
 }
 
+# A shell or a command on a private VM (Nexus, a node) through the jump host.
+cmd_ssh() {
+    local stack=$1 host=${2:-}; check_stack "$stack"
+    [[ -n $host ]] || die 'Usage: local/lab.sh ssh STACK PRIVATE_ADDRESS [COMMAND...]'
+    vm_context "$stack"; ssh_setup "$stack"
+    through_jump "$host" "${@:3}"
+}
+
 # After kubemarine apply: kubeconfig from the first control-plane, reaching the API through the tunnel.
 cmd_prepare_vms() {
     local stack=$1 cp kubeconfig; check_stack "$stack"
@@ -401,6 +409,7 @@ case ${1:-} in
     nexus-install) cmd_nexus_install "${2:-}" ;;
     nexus-load) cmd_nexus_load "${2:-}" ;;
     prepare-vms) cmd_prepare_vms "${2:-}" ;;
+    ssh) shift; cmd_ssh "$@" ;;
     *) cat >&2 <<'EOF'
 Usage: local/lab.sh <command>
   start                  create the lab network, start Floci AWS and its UI, wait for health
@@ -418,6 +427,7 @@ VM installation (docs/vm-installation.md); SSH commands run as: local/lab.sh wit
   nexus-install STACK    copy Nexus from the bundle to its VM through the jump host and start it
   nexus-load STACK       create the Nexus repositories and upload the bundle (through the tunnel)
   prepare-vms STACK      after kubemarine: kubeconfig from the control plane, API through the tunnel
+  ssh STACK ADDRESS [CMD] shell or command on a private VM through the jump host
 EOF
        exit 2 ;;
 esac

@@ -78,6 +78,16 @@
   manifest → `gh release create`. Упаковка/распаковка проверены локально (побайтно совпадает), actionlint чистый.
   В GitHub Actions ещё НЕ запускался.
 
+## Azure quickstart (2026-11-04)
+- Запрос Boris: установить customer1-azure-staging в пустую Azure-подписку, K8s через Kubemarine на VM, бандл из
+  GitHub Release (бандл опубликован и скачан Boris).
+- Решение: `customer1-azure-staging` в репо = Floci-лаба с AKS, её деплоит CI. По конвенции репо (`staging.yaml.example`)
+  реальное облако = копия шаблона поверх staging.yaml в рабочей ветке. Добавлены
+  `stacks/customers/customer1/azure/staging-vms.yaml.example`, `workflows/customers/customer1/azure-vm.yaml`,
+  `lab.sh ssh`, `docs/azure-vm-quickstart.md`. Креды Azure = service principal (Cloud Shell) → `sops set` в secrets.
+- Нужно 24 vCPU в регионе (22 DSv5 + 2 BS) — квоты новой подписки обычно меньше, шаг 5.1 инструкции.
+- В реальном Azure не проверялось.
+
 ## Открытые вопросы (к встрече 16.11)
 - CI-ключ age и GitHub secret `SOPS_AGE_KEY`: кто создаёт, чей ключ ещё добавить в `.sops.yaml`.
 - Загрузка Nexus в managed-схеме: тем же загрузчиком, но пока не встроено в workflow.

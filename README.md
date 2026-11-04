@@ -225,6 +225,7 @@ Keep execution dependencies explicit: create inputs before their consumers, and 
 
 - [First run](docs/getting-started.md): install tools, configure provider access, start, deploy, verify, and destroy.
 - [VM installation](docs/vm-installation.md): isolated Kubernetes on VMs with Kubemarine, Nexus bundle, SOPS secrets.
+- [Azure quickstart](docs/azure-vm-quickstart.md): customer1-azure-staging on Kubemarine VMs, from an empty subscription.
 - [Architecture reference](docs/architecture.md): Atmos discovery, imports, component contracts, state, Helmfile values, and AWS workflow internals. The Azure overview above reflects the newer local integration.
 - [Local development reference](docs/local-development.md): detailed AWS command responsibilities, prerequisites, readiness, access, and troubleshooting.
 - [Cloud preparation](docs/deployment.md): real-cloud preparation for Azure/GCP and load balancer inputs. Its inactive-Azure statements predate the local integration; use this README for current local Azure status.

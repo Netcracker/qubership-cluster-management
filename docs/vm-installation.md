@@ -140,7 +140,8 @@ cp stacks/customers/customer1/aws/vm.yaml.example stacks/customers/customer1/aws
 
 Fill the Ubuntu 24.04 AMI of the region (Kubemarine 0.55 needs containerd 2.2, which Ubuntu 24.04 ships) and the
 operator CIDR for the jump host. Node sizes and counts are in `catalog/aws/vms.yaml` and can be overridden in the stack.
-Azure and GCP stacks import `catalog/azure/vms` or `catalog/gcp/vms` the same way; the Azure network needs a
+Azure: a complete walkthrough from an empty subscription is [Azure quickstart](azure-vm-quickstart.md)
+(template `customer1/azure/staging-vms.yaml.example`). GCP stacks import `catalog/gcp/vms` the same way; the Azure network needs a
 `public` subnet and a `kubernetes` subnet with `public: false`.
 
 The workflow file is per stack (Atmos does not pass the stack name to shell steps):
