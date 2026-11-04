@@ -250,6 +250,36 @@ pwsh -NoProfile -File ./local/scripts/Stop-Local.ps1
 
 ## Nexus readiness details
 
+### Terraform HTTP-provider variant
+
+`deploy-staging` in `workflows/customers/customer1/staging-terraform.yaml` is a standalone customer1 AWS deployment scenario, including network, Kubernetes, access preparation, Nexus, applications, and the load balancer:
+
+```powershell
+atmos workflow deploy-staging -f customers/customer1/staging-terraform
+```
+
+It retains the sequence network -> Kubernetes -> access preparation, followed by parallel Nexus and platform branches.
+Its internal `deploy-nexus` and `deploy-platform` branches are defined in the same file.
+In `deploy-nexus`, the first plan/apply explicitly disables Terraform readiness and skips the Atmos
+readiness hook. Once the VM exists, the existing Get-NexusEndpoint.ps1 resolves its URL automatically inside the
+workflow. A second Terraform apply receives the captured URL through `-var=nexus_readiness_url=...` and enables
+`nexus_wait_for_ready`. The HTTP provider performs the readiness requests and requires HTTP 200.
+There is no manual endpoint command or URL environment variable to set before starting this workflow.
+The endpoint step retries address discovery; it does not wait for the Nexus application to become ready.
+
+For real AWS, the Terraform readiness block can build its URL directly from aws_instance.nexus public_ip, falling
+back to private_ip, on port 8081 when no URL override is supplied. The Terraform runner must be able to reach it.
+For local Floci, the workflow supplies the dynamically published Windows port using the existing endpoint helper.
+VM creation and readiness are two apply invocations within the same Nexus branch, and the platform branch continues
+in parallel throughout. With an unchanged VM, the second apply may read the HTTP data source during its planning
+phase; the apply command still waits for that read to finish. This is not continuous health monitoring.
+
+An isolated test ran this workflow branch with the real HTTP provider, a local HTTP server, and terraform_data
+placeholders for the VM/ingress. It verified no HTTP request during initial provisioning, captured-URL argument
+passing, and responses 503 -> 503 -> 200 in the second apply. This is not a full Floci/Nexus deployment test.
+
+### Existing Atmos variants
+
 deploy-staging uses the hook in stacks/catalog/aws/nexus.yaml after Nexus apply, including direct apply outside a workflow.
 Retry wraps the entire kind: steps hook because shell-level retry did not execute in this installed version.
 deploy-staging-no-hook passes --skip-hooks=nexus-ready to apply, then runs endpoint lookup retries and an HTTP readiness step.

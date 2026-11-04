@@ -4,7 +4,11 @@ $script:Local = Split-Path -Parent $PSScriptRoot
 $script:Root = Split-Path -Parent $script:Local
 $script:Compose = Join-Path $script:Local 'compose.yml'
 $script:Runtime = Join-Path $script:Root '.local-runtime'
-$script:Settings = Get-Content (Join-Path $script:Local 'settings.json') -Raw | ConvertFrom-Json
+$settingsPath = Join-Path $script:Local 'settings.json'
+if (-not (Test-Path -LiteralPath $settingsPath)) {
+    $settingsPath = Join-Path $script:Local 'settings.example.json'
+}
+$script:Settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
 $script:NodesFile = Join-Path $script:Runtime 'nodes.json'
 
 function Invoke-LabCommand {

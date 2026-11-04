@@ -45,3 +45,15 @@ variable "local_endpoint" {
   type        = string
   default     = null
 }
+
+variable "nexus_wait_for_ready" {
+  description = "Wait for Nexus readiness during Terraform apply"
+  type        = bool
+  default     = false
+}
+
+variable "nexus_readiness_url" {
+  description = "Full Nexus writable-status endpoint URL"
+  type        = string
+  default     = null
+}

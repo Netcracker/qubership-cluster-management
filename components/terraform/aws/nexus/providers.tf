@@ -10,4 +10,5 @@ provider "aws" {
   endpoints {
     ec2 = var.local_endpoint
   }
+ 
 }

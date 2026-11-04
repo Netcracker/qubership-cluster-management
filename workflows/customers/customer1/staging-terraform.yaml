@@ -1,0 +1,110 @@
+workflows:
+  deploy-staging:
+    description: Deploy staging with Terraform-managed Nexus readiness
+    stack: customer1-aws-staging
+    steps:
+      - name: network
+        command: terraform apply network -auto-approve
+      - name: plan-kubernetes
+        command: terraform plan kubernetes -input=false
+      - name: kubernetes
+        command: terraform apply kubernetes --from-plan -input=false -auto-approve
+      - name: access
+        type: shell
+        command: pwsh -NoProfile -File ./local/scripts/Prepare-Cluster.ps1 -Stack customer1-aws-staging
+      - name: services
+        type: parallel
+        max_concurrency: 2
+        fail:
+          mode: wait_all
+        output:
+          mode: prefixed
+          show_summary: true
+        steps:
+          - name: nexus
+            type: atmos
+            command: workflow deploy-nexus -f customers/customer1/staging-terraform
+          - name: platform
+            type: atmos
+            command: workflow deploy-platform -f customers/customer1/staging-terraform
+  deploy-nexus:
+    description: Create Nexus, resolve its endpoint, then wait through the Terraform HTTP provider
+    stack: customer1-aws-staging
+    steps:
+      - name: plan
+        command: terraform plan nexus -input=false -var=nexus_wait_for_ready=false
+      - name: apply
+        command: terraform apply nexus --from-plan -input=false -auto-approve --skip-hooks=nexus-ready
+      - name: endpoint
+        type: shell
+        command: pwsh -NoProfile -File ./local/scripts/Get-NexusEndpoint.ps1 -Stack customer1-aws-staging
+        retry:
+          max_attempts: 60
+          max_elapsed_time: 5m
+          backoff_strategy: constant
+          initial_delay: 5s
+      - name: readiness
+        command: >-
+          terraform apply nexus -input=false -auto-approve --skip-hooks=nexus-ready
+          -var=nexus_wait_for_ready=true
+          -var="nexus_readiness_url={{ .steps.endpoint.value | trim }}"
+  deploy-platform:
+    description: 'Internal branch: install apps and load balancer after Kubernetes access is ready'
+    stack: customer1-aws-staging
+    steps:
+    - name: istio
+      command: helmfile apply istio
+    - name: argocd
+      command: helmfile apply argocd
+    - name: kiali
+      command: helmfile apply kiali
+    - name: minio
+      command: helmfile apply minio
+    - name: headlamp
+      command: helmfile apply headlamp
+    - name: plan-load-balancer
+      command: terraform plan load-balancer -input=false
+    - name: load-balancer
+      command: terraform apply load-balancer --from-plan -input=false -auto-approve
+  destroy-staging:
+    description: Destroy Nexus and platform concurrently, then remove the network
+    stack: customer1-aws-staging
+    steps:
+      - name: services
+        type: parallel
+        max_concurrency: 2
+        fail:
+          mode: wait_all
+        output:
+          mode: prefixed
+          show_summary: true
+        steps:
+          - name: nexus
+            type: atmos
+            command: terraform destroy nexus -auto-approve -var=nexus_wait_for_ready=false
+          - name: platform
+            type: atmos
+            command: workflow destroy-platform -f customers/customer1/staging-terraform
+      - name: network
+        command: terraform destroy network -auto-approve
+  destroy-platform:
+    description: Remove load balancer, applications and Kubernetes in dependency order
+    stack: customer1-aws-staging
+    steps:
+      - name: load-balancer
+        command: terraform destroy load-balancer -auto-approve
+      - name: kiali-instance
+        type: shell
+        command: kubectl --kubeconfig ./.local-runtime/kubeconfig-customer1-aws-staging.yaml delete kiali kiali -n istio-system --ignore-not-found=true --wait=true --timeout=180s
+      - name: headlamp
+        command: helmfile destroy headlamp
+      - name: minio
+        command: helmfile destroy minio
+      - name: kiali
+        command: helmfile destroy kiali
+      - name: argocd
+        command: helmfile destroy argocd
+      - name: istio
+        command: helmfile destroy istio
+      - name: kubernetes
+        command: terraform destroy kubernetes -auto-approve
