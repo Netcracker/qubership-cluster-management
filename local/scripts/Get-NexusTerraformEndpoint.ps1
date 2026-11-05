@@ -16,7 +16,7 @@ try {
     }
 
     $null = Get-Command docker -ErrorAction Stop
-    $dockerInfo = & docker info --format '{{.ServerVersion}}' 2>&1
+    $null = & docker info --format '{{.ServerVersion}}' 2>&1
     if ($LASTEXITCODE -ne 0) {
         throw 'Docker is unavailable. Start Docker Desktop before running the local workflow.'
     }

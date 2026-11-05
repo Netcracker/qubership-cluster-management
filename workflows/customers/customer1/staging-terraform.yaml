@@ -32,7 +32,7 @@ workflows:
     stack: customer1-aws-staging
     steps:
       - name: apply
-        command: terraform apply nexus -input=false -auto-approve --skip-hooks=nexus-ready -var=nexus_wait_for_ready=true
+        command: terraform apply nexus -input=false -auto-approve
   deploy-platform:
     description: 'Internal branch: install apps and load balancer after Kubernetes access is ready'
     stack: customer1-aws-staging

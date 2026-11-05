@@ -50,7 +50,6 @@ There is currently no separate terminal-environment initialization script.
 | Start-Local.ps1 | No parameters. Checks Docker, creates the external network if absent, starts Floci/UI, waits for Floci health |
 | Stop-Local.ps1 | No parameters. Stops Floci/UI and retains data; does not delete customer resources |
 | Prepare-Cluster.ps1 | Required -Stack. After Kubernetes creation, fixes node networking/webhook/DNS, configures AWS access/kubeconfig, waits for node/CoreDNS |
-| Get-NexusEndpoint.ps1 | Required -Stack. Resolves the Nexus VM and returns its readiness URL, using the Docker-published port locally |
 | Get-NexusTerraformEndpoint.ps1 | Called automatically by the Terraform external provider for Floci. Reads instance_id from stdin JSON, waits for the Docker-published port, and returns URL JSON. Default timeout: 300 seconds; polling interval: 5 seconds. Does not check application readiness |
 | Test-Project.ps1 | Optional -Initialize, -RenderHelmfile, -Stack; validates configuration without apply |
 | Local-Lab.psm1 | Internal module used by wrapper scripts; not a standalone executable |
@@ -72,9 +71,9 @@ User
 │     ├─ Docker → k3s network and node settings
 │     └─ AWS CLI + kubectl → profile, kubeconfig, access checks
 │  after access succeeds → parallel branches
-│     ├─ Terraform Nexus → hook or explicit readiness steps
-│     │  └─ Get-NexusEndpoint.ps1 → Atmos + AWS CLI + Docker → URL
-│     │     └─ Atmos HTTP step → Nexus readiness
+│     ├─ Terraform Nexus → single apply with provider readiness
+│     │  └─ external provider → Get-NexusTerraformEndpoint.ps1 → Docker → URL
+│     │     └─ Terraform HTTP provider → Nexus readiness
 │     └─ Helmfile → applications → Terraform load-balancer
 ├─ Atmos destroy workflow → customer resource deletion
 └─ Stop-Local.ps1 → Local-Lab.psm1: Stop-Lab → Docker Compose stop
@@ -92,10 +91,9 @@ the Azure/GCP providers have not yet been configured for those emulators.
 | settings.json endpoint and region | Local-Lab.psm1 | AWS CLI target during access preparation |
 | network, subnet, gateway | Start-Lab / network preparation | External Docker network name and addressing on creation |
 | dnsServers | Repair-LabNode | nameserver entries inside the k3s container |
-| registryIP | Existing configuration format | Current Start/Stop do not use it to reconfigure registry |
-| -Stack customer1-aws-staging | Prepare-Cluster / Get-NexusEndpoint | Stack queried from Atmos |
-| vars.environment | Both scripts after describe | Customer cluster, IAM user, and VM identity |
-| vars.local_endpoint and vars.region | Terraform providers / Get-NexusEndpoint | Cloud API target |
+| -Stack customer1-aws-staging | Prepare-Cluster | Stack queried from Atmos |
+| vars.environment | Local-Lab and Terraform components | Customer cluster, IAM user, and VM identity |
+| vars.local_endpoint and vars.region | Terraform providers | Cloud API target |
 | Final stack env.KUBECONFIG | Helmfile launched through Atmos | Cluster access for charts |
 | load-balancer.vars.kubeconfig_path | Terraform ALB Kubernetes provider | Access to existing Services |
 
@@ -160,17 +158,6 @@ To restore access to an existing cluster manually:
 pwsh -NoProfile -File ./local/scripts/Prepare-Cluster.ps1 -Stack customer1-aws-staging
 ```
 
-### Get-NexusEndpoint: inputs and return value
-
-The script reads Nexus configuration from Atmos, including environment, region, and local_endpoint.
-AWS CLI selects exactly one running VM tagged Name=<environment>-nexus and Role=nexus.
-Locally, InstanceId selects `floci-aws-ec2-fwd-<InstanceId>-8081`; `docker port` returns the published host port.
-
-Stdout contains a URL such as `http://127.0.0.1:<port>/service/rest/v1/status/writable`.
-Atmos captures the endpoint step's result; the HTTP step reads `{{ .steps.endpoint.value | trim }}`.
-The script neither installs Nexus nor waits for application readiness; the caller performs that wait.
-For real AWS, it selects the public VM IP, falling back to private IP, with port 8081.
-
 ### Stop and configuration checks
 
 Stop-Local calls Stop-Lab, checks Docker, and stops Floci/UI through Compose.
@@ -189,25 +176,18 @@ Terraform validation still covers all modules. Passing these checks does not ver
 ## Starting and deploying
 
 ```powershell
-pwsh -NoProfile -File ./local/scripts/Start-Local.ps1
+& ./local/scripts/Start-Local.ps1
 ```
 
-Choose one customer1 deployment variant. Hook-based readiness:
+Deploy customer1 with Terraform-managed Nexus readiness:
 
 ```powershell
-# Check Nexus readiness through a hook
-atmos workflow deploy-staging -f customers/customer1/aws
+atmos workflow deploy-staging -f customers/customer1/staging-terraform
 ```
 
-Or explicit workflow readiness steps without the Nexus hook:
-
-```powershell
-atmos workflow deploy-staging-no-hook -f customers/customer1/aws
-```
-
-Both manage the same environment. Network, Kubernetes, and Prepare run sequentially;
-Nexus/readiness and applications/ALB then run concurrently. Customer1 Terraform apply/destroy use -auto-approve.
-The main workflow waits for both branches and fails if either fails.
+Network, Kubernetes, and Prepare run sequentially; Nexus and applications/ALB then run concurrently.
+Nexus VM creation, endpoint discovery, and HTTP readiness all happen inside one Terraform apply.
+Customer1 Terraform apply/destroy use -auto-approve. The main workflow waits for both branches and fails if either fails.
 
 Customer2 has a separate sequential deployment with Terraform confirmation:
 
@@ -223,28 +203,20 @@ It excludes Nexus/ALB and currently has no destroy workflow.
 $env:NO_PROXY = 'localhost,127.0.0.1,::1,floci'
 kubectl --kubeconfig ./.local-runtime/kubeconfig-customer1-aws-staging.yaml get nodes
 kubectl --kubeconfig ./.local-runtime/kubeconfig-customer1-aws-staging.yaml get pods -A
-pwsh -NoProfile -File ./local/scripts/Get-NexusEndpoint.ps1 -Stack customer1-aws-staging
 ```
 
 Floci UI: http://127.0.0.1:4500. Configured ALB routes serve http://argocd.localhost,
 http://kiali.localhost, http://minio.localhost, and http://headlamp.localhost.
-Nexus uses a dynamic host port: use the script output rather than hardcoding 30000.
+Nexus uses a dynamic host port discovered by Terraform; do not hardcode 30000.
 Its writable status endpoint returns 200 when ready. MinIO uses persistence.enabled=false;
 data is not expected to survive pod replacement.
 
 ## Deleting and stopping
 
-Choose one deletion variant. Sequential:
+Delete Nexus and the platform concurrently, then remove the network:
 
 ```powershell
-# Sequential deletion
-atmos workflow destroy-staging -f customers/customer1/aws
-```
-
-Or delete Nexus and the platform concurrently:
-
-```powershell
-atmos workflow destroy-staging-parallel -f customers/customer1/aws
+atmos workflow destroy-staging -f customers/customer1/staging-terraform
 ```
 
 ```text
@@ -264,7 +236,7 @@ pwsh -NoProfile -File ./local/scripts/Stop-Local.ps1
 
 ## Nexus readiness details
 
-### Terraform HTTP-provider variant
+### Terraform-managed readiness
 
 `deploy-staging` in `workflows/customers/customer1/staging-terraform.yaml` is a standalone customer1 AWS deployment scenario, including network, Kubernetes, access preparation, Nexus, applications, and the load balancer:
 
@@ -275,7 +247,7 @@ atmos workflow deploy-staging -f customers/customer1/staging-terraform
 It retains the sequence network -> Kubernetes -> access preparation, followed by parallel Nexus and platform branches.
 Its internal `deploy-nexus` and `deploy-platform` branches are defined in the same file.
 In `deploy-nexus`, a single Terraform apply creates the VM and enables `nexus_wait_for_ready`.
-The Atmos readiness hook is skipped. There is no endpoint step, workflow retry, or second apply in this branch.
+There is no Atmos readiness hook, endpoint step, workflow retry, or second apply in this branch.
 For real AWS, Terraform builds the readiness URL from `aws_instance.nexus.public_ip`, falling back to `private_ip`, on port 8081.
 The HTTP data source depends on the VM and its HTTP ingress rule, so on initial creation it is read after those
 resources are created, within the same apply. The HTTP provider retries requests and the postcondition requires
@@ -294,16 +266,13 @@ The script is not called for real AWS, when readiness is disabled, or when an ex
 In AWS, the Terraform runner must be able to reach the VM address. No URL environment variable or manual script
 invocation is required. Stack validation and workflow dry-runs do not verify a complete deployment.
 
-### Existing Atmos variants
+The HTTP provider retries failed connections and retryable HTTP errors up to 60 times, with 10-second delays
+and a 5-second per-request timeout. The postcondition requires HTTP 200. Waiting does not restart installation
+or repair failed user-data. The Nexus catalog enables readiness for direct component apply too; the destroy
+workflow explicitly disables it.
 
-deploy-staging uses the hook in stacks/catalog/aws/nexus.yaml after Nexus apply, including direct apply outside a workflow.
-Retry wraps the entire kind: steps hook because shell-level retry did not execute in this installed version.
-deploy-staging-no-hook passes --skip-hooks=nexus-ready to apply, then runs endpoint lookup retries and an HTTP readiness step.
-The HTTP check makes up to 60 attempts, 10 seconds apart, with a 5-second request timeout.
-Waiting does not restart installation or repair failed user-data.
-
-Get-NexusEndpoint and Local-Lab stack lookups obtain JSON through `atmos describe ... --file`.
-Each call reads its own temporary file and removes it in finally; CLI diagnostics are not parsed as JSON.
+Local-Lab stack lookups obtain JSON through `atmos describe ... --file` and remove their temporary files.
+CLI diagnostics are not parsed as JSON.
 Nexus user-data sets DPkg::Lock::Timeout=180 because Floci may install SSH packages concurrently.
 ALB uses the customer1 stack's kubeconfig_path, matching Prepare's output file.
 
@@ -311,9 +280,9 @@ ALB uses the customer1 stack's kubeconfig_path, matching Prepare's output file.
 
 ```powershell
 pwsh -NoProfile -File ./local/scripts/Test-Project.ps1
-atmos workflow deploy-staging-no-hook -f customers/customer1/aws --dry-run
-atmos workflow destroy-staging-parallel -f customers/customer1/aws --dry-run
-atmos workflow destroy-platform-staging -f customers/customer1/aws --dry-run
+atmos workflow deploy-staging -f customers/customer1/staging-terraform --dry-run
+atmos workflow destroy-staging -f customers/customer1/staging-terraform --dry-run
+atmos workflow destroy-platform -f customers/customer1/staging-terraform --dry-run
 ```
 
 Parallel-group dry-run does not execute child workflows; inspect them separately.
@@ -322,7 +291,7 @@ Failures leave already-created resources in place. Do not reuse a plan after sta
 The main deployment regenerates plans. To resume application installation from a known step, for example:
 
 ```powershell
-atmos workflow deploy-platform-staging -f customers/customer1/aws --from-step minio
+atmos workflow deploy-platform -f customers/customer1/staging-terraform --from-step minio
 ```
 
 For Docker Address already in use, compare `docker network inspect aws-local_default` with nodes.json.

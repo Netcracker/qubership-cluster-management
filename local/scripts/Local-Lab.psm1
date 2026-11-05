@@ -202,11 +202,10 @@ function Repair-LabNode {
 }
 
 function Set-LabAccess {
-    param($Plan, [switch]$CreateAccess)
+    param($Plan)
     $expectedArn = "arn:aws:iam::000000000000:user/$($Plan.User)"
     $identity = Invoke-LabAws @('sts','get-caller-identity','--profile',$Plan.Profile,'--query','Arn','--output','text') -AllowFailure
     if ($identity.ExitCode -ne 0 -or $identity.Output.Trim() -ne $expectedArn) {
-        if (-not $CreateAccess) { throw "Profile $($Plan.Profile) is unavailable. Run Prepare-Cluster.ps1 -Stack $($Plan.Stack)." }
         Invoke-LabAws @('iam','get-user','--user-name',$Plan.User) | Out-Null
         $savedKey = (Invoke-LabCommand aws @('configure','get','aws_access_key_id','--profile',$Plan.Profile) -AllowFailure).Output.Trim()
         $keys = (Invoke-LabAws @('iam','list-access-keys','--user-name',$Plan.User,'--output','json')).Output | ConvertFrom-Json
@@ -244,48 +243,6 @@ function Set-LabAccess {
     Write-Host "$($Plan.Stack) is ready. Kubeconfig: $($Plan.Kubeconfig)"
 }
 
-function Get-ExistingLabStacks {
-    $clusters = @(((Invoke-LabAws @('eks','list-clusters','--output','json')).Output | ConvertFrom-Json).clusters)
-    $stacks = @((Invoke-LabCommand atmos @('list','stacks','--format','json')).Output | ConvertFrom-Json)
-    foreach ($entry in $stacks) {
-        $description = Invoke-LabCommand atmos @('describe', 'component', 'argocd', '-s', $entry.Stack, '--process-functions=false', '--format', 'json')
-        if (-not ($description.Output | ConvertFrom-Json).settings.local_lab) { continue }
-        $stack = Get-LabStack $entry.Stack
-        if ($stack.Cluster -in $clusters) { $stack.Stack }
-    }
-}
-
-function Start-LabNexus {
-    $instances = (Invoke-LabAws @('ec2','describe-instances','--filters',
-        'Name=tag:Role,Values=nexus','Name=tag:ManagedBy,Values=terraform',
-        'Name=instance-state-name,Values=running,stopped','--output','json')).Output | ConvertFrom-Json
-    foreach ($instance in @($instances.Reservations.Instances)) {
-        if (-not $instance.InstanceId) { continue }
-        $name = "floci-aws-ec2-$($instance.InstanceId)"
-        $container = Get-LabContainer $name
-        if (-not $container) { throw "Nexus container $name is missing." }
-        Write-Host "Starting Nexus on $($instance.InstanceId)"
-        if (-not $container.State.Running) {
-            Invoke-LabCommand docker @('start',$name) | Out-Null
-        }
-        # Starting the EC2 container alone does not start the Nexus Java process.
-        Invoke-LabCommand docker @('exec',$name,'bash','-lc',
-            'runuser -u nexus -- /opt/nexus/bin/nexus status >/dev/null 2>&1 || runuser -u nexus -- /opt/nexus/bin/nexus start') | Out-Null
-        $forward = "floci-aws-ec2-fwd-$($instance.InstanceId)-8081"
-        $publisher = Get-LabContainer $forward
-        if (-not $publisher) { throw "Nexus port publisher $forward is missing. Check the EC2 ingress rule for port 8081." }
-        if (-not $publisher.State.Running) {
-            Invoke-LabCommand docker @('start',$forward) | Out-Null
-        }
-        Wait-Lab -Description "$name HTTP readiness on port 8081" -Seconds 300 -Condition {
-            $response = Invoke-LabCommand docker @('exec',$name,'curl','--noproxy','*',
-                '--max-time','5','-s','-o','/dev/null','-w','%{http_code}','http://127.0.0.1:8081/') -AllowFailure
-            $response.ExitCode -eq 0 -and $response.Output.Trim() -eq '200'
-        }
-        Write-Host "Nexus is ready. Published port: $((Invoke-LabCommand docker @('port',$forward,'8081/tcp')).Output)"
-    }
-}
-
 function Start-Lab {
     Initialize-Lab -RequiredTools @('docker')
     if ((Invoke-LabCommand docker @('network','inspect',$script:Settings.network) -AllowFailure).ExitCode -ne 0) {
@@ -316,7 +273,7 @@ function Prepare-LabCluster {
     $plan = Get-LabClusterPlan $Stack
     Repair-LabNetworks @($plan)
     Repair-LabNode $plan
-    Set-LabAccess $plan -CreateAccess
+    Set-LabAccess $plan
 }
 
 Export-ModuleMember -Function Start-Lab, Stop-Lab, Prepare-LabCluster

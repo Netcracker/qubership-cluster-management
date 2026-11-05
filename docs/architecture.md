@@ -19,12 +19,10 @@ A real AWS deployment requires a separate worker-node and access design.
 | Configuration catalog | Shared component configuration imported into stacks | `stacks/catalog/aws/network.yaml` |
 | Stack | Resolved component configuration for a customer, cloud, and environment | `customer1-aws-staging` |
 | Stack manifest | A file importing defaults/catalogs and defining deployment-specific overrides | `stacks/customers/customer1/aws/staging.yaml` |
-| Workflow | A named sequence of commands, parallel branches, and checks | `deploy-staging-no-hook` in `workflows/customers/customer1/aws.yaml` |
-| Hook | An action triggered by a component lifecycle event | nexus-ready after Terraform applies Nexus |
+| Workflow | A named sequence of commands, parallel branches, and checks | `deploy-staging` in `workflows/customers/customer1/staging-terraform.yaml` |
 
 The same component can serve multiple stacks with different parameters. Resource instances must have separate
-workspaces/backends and names. Multiple workflows can operate on one stack: deployment with a hook,
-deployment with an explicit readiness check, and deletion. A stack describes configuration; a workflow describes execution.
+workspaces/backends and names. Deployment and deletion workflows operate on the same stack. A stack describes configuration; a workflow describes execution.
 
 ## File responsibilities
 
@@ -74,7 +72,7 @@ stacks/
       _defaults.yaml
       aws/{_defaults.yaml,staging.yaml}
 workflows/
-  customers/customer1/aws.yaml
+  customers/customer1/staging-terraform.yaml
   customers/customer2/aws.yaml
   {azure,gcp,helmfile}.yaml
 local/{compose.yml,settings.example.json,settings.json,scripts/,floci-data/}
@@ -113,7 +111,7 @@ customers/customer1/aws/staging.yaml
 |---|---|
 | Customer `_defaults.yaml` | tenant |
 | Cloud `_defaults.yaml` | cloud, region, local endpoint, local_lab, and tool environment |
-| `stacks/catalog/...` | Shared component parameters, physical Terraform paths, output references, and the Nexus hook |
+| `stacks/catalog/...` | Shared component parameters, physical Terraform paths, output references, and Terraform-managed Nexus readiness settings |
 | Final `staging.yaml` | stage, environment, CIDRs, workspaces, kubeconfig, and application overrides |
 
 Maps merge by key; lists are replaced as a whole. The final stack overrides imported values.
@@ -316,29 +314,31 @@ Helmfile rendering needs Helm, Helmfile, helm-diff, and chart availability as de
 
 ## Workflows and readiness
 
-Customer1 scenarios are defined in [aws.yaml](../workflows/customers/customer1/aws.yaml).
+Customer1 deployment and deletion are defined in [staging-terraform.yaml](../workflows/customers/customer1/staging-terraform.yaml).
 
 ```text
-network → plan/apply Kubernetes → Prepare-Cluster → plan Nexus
-                                                  ↓
-                                               parallel
-                                               ├─ Nexus apply → readiness
-                                               └─ applications → plan/apply ALB
+network → plan/apply Kubernetes → Prepare-Cluster
+                                   ↓
+                                parallel
+                                ├─ Nexus: one apply → VM → endpoint → HTTP 200
+                                └─ applications → plan/apply ALB
 ```
 
-`deploy-staging` uses the nexus-ready hook from `stacks/catalog/aws/nexus.yaml`.
-`deploy-staging-no-hook` skips only that hook with `--skip-hooks=nexus-ready` on Nexus apply,
-then resolves the endpoint and checks HTTP readiness in explicit workflow steps. Both operate on the same stack.
-VM provisioning can finish before Nexus installation; HTTP 200 from `/service/rest/v1/status/writable`
-confirms write readiness without an admin password.
+The internal workflows `deploy-nexus` and `deploy-platform` are called by `deploy-staging`.
+The Nexus catalog enables `nexus_wait_for_ready`; the workflow inherits this setting through the stack.
+Within the Nexus Terraform module, the HTTP data source depends on the VM and its ingress rule.
+For local Floci, the external provider calls `local/scripts/Get-NexusTerraformEndpoint.ps1` with the VM ID
+and supplies the dynamically published URL to the HTTP provider. In real AWS, the URL uses the instance public
+IP, falling back to private IP, and the external script is not called. The Terraform runner needs network access.
+HTTP 200 from `/service/rest/v1/status/writable` confirms write readiness without an admin password.
+On initial creation, endpoint discovery and the HTTP read run after their dependencies in the same apply;
+with unchanged dependencies, Terraform can read data sources during planning. There is no Atmos readiness hook.
 
-The internal workflows deploy-nexus-staging, deploy-nexus-staging-no-hook, and deploy-platform-staging
-are called by the main scenarios. Nexus branches require a saved plan and are not standalone first-run entry points.
 Parallel branches run in separate processes through `type: atmos`.
 `wait_all` lets both branches finish and fails the workflow if either fails; resources are not rolled back.
 
-`destroy-staging` deletes sequentially. `destroy-staging-parallel` deletes Nexus and the platform concurrently,
-then network. Its internal destroy-platform-staging branch removes ALB, Kiali CR, Helm releases, and Kubernetes in that order.
+`destroy-staging` deletes Nexus and the platform concurrently, then the network. Its internal `destroy-platform`
+branch removes ALB, Kiali CR, Helm releases, and Kubernetes in that order. Nexus readiness is disabled on destroy.
 If either branch fails, network deletion does not start.
 
 ## State and generated files
