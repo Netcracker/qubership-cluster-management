@@ -51,6 +51,7 @@ There is currently no separate terminal-environment initialization script.
 | Stop-Local.ps1 | No parameters. Stops Floci/UI and retains data; does not delete customer resources |
 | Prepare-Cluster.ps1 | Required -Stack. After Kubernetes creation, fixes node networking/webhook/DNS, configures AWS access/kubeconfig, waits for node/CoreDNS |
 | Get-NexusEndpoint.ps1 | Required -Stack. Resolves the Nexus VM and returns its readiness URL, using the Docker-published port locally |
+| Get-NexusTerraformEndpoint.ps1 | Called automatically by the Terraform external provider for Floci. Reads instance_id from stdin JSON, waits for the Docker-published port, and returns URL JSON. Default timeout: 300 seconds; polling interval: 5 seconds. Does not check application readiness |
 | Test-Project.ps1 | Optional -Initialize, -RenderHelmfile, -Stack; validates configuration without apply |
 | Local-Lab.psm1 | Internal module used by wrapper scripts; not a standalone executable |
 
@@ -105,6 +106,19 @@ Prepare writes the actual kubeconfig under the repository root's runtime directo
 ### Start: actions and result
 
 Start-Local imports [Local-Lab.psm1](../local/scripts/Local-Lab.psm1) and calls Start-Lab.
+Before importing the module, it sets `HTTPS_PROXY=http://127.0.0.1:12334`, sets `HTTP_PROXY` to the same
+address, and adds `localhost,127.0.0.1,::1,floci` to `NO_PROXY`, preserving existing bypass entries.
+To retain these variables for the subsequent Atmos command, run the script directly in the same PowerShell 7
+terminal rather than starting a child PowerShell process:
+
+```powershell
+& ./local/scripts/Start-Local.ps1
+atmos workflow deploy-staging -f customers/customer1/staging-terraform
+```
+
+`pwsh -NoProfile -File ./local/scripts/Start-Local.ps1` starts the lab too, but its environment changes do not
+propagate back to the calling terminal. The proxy must already be running at the configured address.
+These assignments do not persist user or system environment variables or configure Docker Desktop's own proxy.
 Initialization checks the Docker CLI/engine, creates .local-runtime, sets local test AWS credentials,
 and extends NO_PROXY inside the script process. Start-Lab creates the network if absent,
 runs `docker compose up -d`, and waits for Floci health.
@@ -261,18 +275,24 @@ atmos workflow deploy-staging -f customers/customer1/staging-terraform
 It retains the sequence network -> Kubernetes -> access preparation, followed by parallel Nexus and platform branches.
 Its internal `deploy-nexus` and `deploy-platform` branches are defined in the same file.
 In `deploy-nexus`, a single Terraform apply creates the VM and enables `nexus_wait_for_ready`.
-The Atmos readiness hook is skipped. There is no endpoint script, workflow retry, or second apply in this branch.
-Terraform builds the readiness URL from `aws_instance.nexus.public_ip`, falling back to `private_ip`, on port 8081.
+The Atmos readiness hook is skipped. There is no endpoint step, workflow retry, or second apply in this branch.
+For real AWS, Terraform builds the readiness URL from `aws_instance.nexus.public_ip`, falling back to `private_ip`, on port 8081.
 The HTTP data source depends on the VM and its HTTP ingress rule, so on initial creation it is read after those
 resources are created, within the same apply. The HTTP provider retries requests and the postcondition requires
 HTTP 200. The platform branch continues in parallel. With unchanged dependencies, the HTTP data source may be read
 during planning. This is not continuous health monitoring.
 
-The Terraform runner must be able to reach the VM address. Local Floci's dynamic host-port discovery is not
-implemented in this single-apply variant. The current local stack therefore cannot run it as-is: the existing
-Terraform precondition rejects local readiness without an explicit URL. Use the existing Atmos variants below
-for the local lab until that integration is implemented. Stack validation and workflow dry-runs do not verify
-endpoint connectivity or a complete deployment.
+For local Floci, `data.external.nexus_endpoint` in `components/terraform/aws/nexus/readiness.tf` runs
+`local/scripts/Get-NexusTerraformEndpoint.ps1` after the VM and HTTP ingress rule are created. The external
+provider passes the instance ID as JSON on stdin. The script reads Docker's published IPv4 port for
+`floci-aws-ec2-fwd-<instance-id>-8081`, waiting up to 300 seconds with a 5-second polling interval, and returns
+`{"url":"http://127.0.0.1:<port>/service/rest/v1/status/writable"}` on stdout. It does not install anything,
+create containers, call Atmos, or send HTTP requests to Nexus. Failure to resolve the port fails the apply.
+The HTTP data source consumes this URL and performs application readiness retries within the same apply.
+This local integration requires PowerShell 7, the Docker CLI, and a running Docker Desktop on the Terraform host.
+The script is not called for real AWS, when readiness is disabled, or when an explicit readiness URL is supplied.
+In AWS, the Terraform runner must be able to reach the VM address. No URL environment variable or manual script
+invocation is required. Stack validation and workflow dry-runs do not verify a complete deployment.
 
 ### Existing Atmos variants
 
