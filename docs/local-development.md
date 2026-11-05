@@ -260,23 +260,19 @@ atmos workflow deploy-staging -f customers/customer1/staging-terraform
 
 It retains the sequence network -> Kubernetes -> access preparation, followed by parallel Nexus and platform branches.
 Its internal `deploy-nexus` and `deploy-platform` branches are defined in the same file.
-In `deploy-nexus`, the first plan/apply explicitly disables Terraform readiness and skips the Atmos
-readiness hook. Once the VM exists, the existing Get-NexusEndpoint.ps1 resolves its URL automatically inside the
-workflow. A second Terraform apply receives the captured URL through `-var=nexus_readiness_url=...` and enables
-`nexus_wait_for_ready`. The HTTP provider performs the readiness requests and requires HTTP 200.
-There is no manual endpoint command or URL environment variable to set before starting this workflow.
-The endpoint step retries address discovery; it does not wait for the Nexus application to become ready.
+In `deploy-nexus`, a single Terraform apply creates the VM and enables `nexus_wait_for_ready`.
+The Atmos readiness hook is skipped. There is no endpoint script, workflow retry, or second apply in this branch.
+Terraform builds the readiness URL from `aws_instance.nexus.public_ip`, falling back to `private_ip`, on port 8081.
+The HTTP data source depends on the VM and its HTTP ingress rule, so on initial creation it is read after those
+resources are created, within the same apply. The HTTP provider retries requests and the postcondition requires
+HTTP 200. The platform branch continues in parallel. With unchanged dependencies, the HTTP data source may be read
+during planning. This is not continuous health monitoring.
 
-For real AWS, the Terraform readiness block can build its URL directly from aws_instance.nexus public_ip, falling
-back to private_ip, on port 8081 when no URL override is supplied. The Terraform runner must be able to reach it.
-For local Floci, the workflow supplies the dynamically published Windows port using the existing endpoint helper.
-VM creation and readiness are two apply invocations within the same Nexus branch, and the platform branch continues
-in parallel throughout. With an unchanged VM, the second apply may read the HTTP data source during its planning
-phase; the apply command still waits for that read to finish. This is not continuous health monitoring.
-
-An isolated test ran this workflow branch with the real HTTP provider, a local HTTP server, and terraform_data
-placeholders for the VM/ingress. It verified no HTTP request during initial provisioning, captured-URL argument
-passing, and responses 503 -> 503 -> 200 in the second apply. This is not a full Floci/Nexus deployment test.
+The Terraform runner must be able to reach the VM address. Local Floci's dynamic host-port discovery is not
+implemented in this single-apply variant. The current local stack therefore cannot run it as-is: the existing
+Terraform precondition rejects local readiness without an explicit URL. Use the existing Atmos variants below
+for the local lab until that integration is implemented. Stack validation and workflow dry-runs do not verify
+endpoint connectivity or a complete deployment.
 
 ### Existing Atmos variants
 

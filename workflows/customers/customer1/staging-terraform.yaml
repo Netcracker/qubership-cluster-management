@@ -28,26 +28,11 @@ workflows:
             type: atmos
             command: workflow deploy-platform -f customers/customer1/staging-terraform
   deploy-nexus:
-    description: Create Nexus, resolve its endpoint, then wait through the Terraform HTTP provider
+    description: Create Nexus and wait for readiness in a single Terraform apply
     stack: customer1-aws-staging
     steps:
-      - name: plan
-        command: terraform plan nexus -input=false -var=nexus_wait_for_ready=false
       - name: apply
-        command: terraform apply nexus --from-plan -input=false -auto-approve --skip-hooks=nexus-ready
-      - name: endpoint
-        type: shell
-        command: pwsh -NoProfile -File ./local/scripts/Get-NexusEndpoint.ps1 -Stack customer1-aws-staging
-        retry:
-          max_attempts: 60
-          max_elapsed_time: 5m
-          backoff_strategy: constant
-          initial_delay: 5s
-      - name: readiness
-        command: >-
-          terraform apply nexus -input=false -auto-approve --skip-hooks=nexus-ready
-          -var=nexus_wait_for_ready=true
-          -var="nexus_readiness_url={{ .steps.endpoint.value | trim }}"
+        command: terraform apply nexus -input=false -auto-approve --skip-hooks=nexus-ready -var=nexus_wait_for_ready=true
   deploy-platform:
     description: 'Internal branch: install apps and load balancer after Kubernetes access is ready'
     stack: customer1-aws-staging
