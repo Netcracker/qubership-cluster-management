@@ -1,0 +1,7 @@
+components:
+  terraform:
+    ingress-wait:
+      metadata:
+        component: kubernetes/ingress-wait
+      vars:
+        ingress_class_name: traefik

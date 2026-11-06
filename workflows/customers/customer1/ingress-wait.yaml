@@ -1,0 +1,42 @@
+workflows:
+  deploy:
+    description: Deploy infrastructure and wait for an Ingress address
+    stack: customer1-aws-staging
+    steps:
+      - name: network
+        command: terraform apply network -input=false -auto-approve
+
+      - name: kubernetes
+        command: terraform apply kubernetes -input=false -auto-approve
+
+      - name: access
+        type: shell
+        command: pwsh -NoProfile -File ./local/scripts/Prepare-Cluster.ps1 -Stack customer1-aws-staging
+
+      - name: traefik
+        command: helmfile apply traefik
+
+      - name: nginx
+        command: terraform apply nginx -input=false -auto-approve
+
+      - name: ingress
+        command: terraform apply ingress-wait -input=false -auto-approve
+
+  destroy:
+    description: Remove Ingress, backend, controller and infrastructure
+    stack: customer1-aws-staging
+    steps:
+      - name: ingress
+        command: terraform destroy ingress-wait -input=false -auto-approve
+
+      - name: nginx
+        command: terraform destroy nginx -input=false -auto-approve
+
+      - name: traefik
+        command: helmfile destroy traefik
+
+      - name: kubernetes
+        command: terraform destroy kubernetes -input=false -auto-approve
+
+      - name: network
+        command: terraform destroy network -input=false -auto-approve
