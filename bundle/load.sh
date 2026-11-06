@@ -46,7 +46,8 @@ api -o /dev/null "$NEXUS_URL/service/rest/v1/repositories/images" 2>/dev/null ||
 
 echo 'Uploading files, apt packages and charts'
 (cd "$bundle" && find files apt charts -type f) | while read -r path; do
-    url="$NEXUS_URL/repository/bundle/$path"
+    # apt-get download keeps the version epoch as "%3a" in the file name; apt asks for it literally, so escape "%".
+    url="$NEXUS_URL/repository/bundle/${path//%/%25}"
     # index files change when the bundle changes; everything else is versioned by its name
     if [[ $path == apt/Packages || $path == charts/index.yaml ]] || ! curl -fsS -o /dev/null -I "$url" 2>/dev/null; then
         api -o /dev/null --upload-file "$bundle/$path" "$url"
