@@ -1,0 +1,5 @@
+components:
+  terraform:
+    manifest-wait:
+      metadata:
+        component: kubernetes/manifest-wait

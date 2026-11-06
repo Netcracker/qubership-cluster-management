@@ -13,6 +13,7 @@ import:
   - catalog/helmfile/traefik
   - catalog/kubernetes/ingress-wait
   - catalog/kubernetes/job-wait
+  - catalog/kubernetes/manifest-wait
 vars:
   stage: staging
   environment: customer1-staging
@@ -54,6 +55,11 @@ components:
       vars:
         kubeconfig_path: ../../../../.local-runtime/kubeconfig-customer1-aws-staging.yaml
     job-wait:
+      metadata:
+        terraform_workspace: customer1-aws-staging
+      vars:
+        kubeconfig_path: ../../../../.local-runtime/kubeconfig-customer1-aws-staging.yaml
+    manifest-wait:
       metadata:
         terraform_workspace: customer1-aws-staging
       vars:
