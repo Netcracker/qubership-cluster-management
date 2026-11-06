@@ -1,0 +1,14 @@
+# Every secrets/<stack>.yaml is encrypted for ALL keys listed here; ANY one of them decrypts it.
+# Add a key: append its recipient, then `sops updatekeys secrets/<stack>.yaml` for each existing file.
+# Key sources are picked by sops at run time (docs/vm-installation.md, "Secrets"):
+#   SOPS_AGE_KEY_FILE (default local/age.key), SOPS_AGE_KEY (CI variable), SOPS_AGE_KEY_CMD (cloud secret manager),
+#   or cloud credentials allowed to use a KMS key listed below.
+creation_rules:
+  - path_regex: ^secrets/[^/]+\.yaml$
+    age: >-
+      age1cpj5sayk5stz4kugt7nt4p9u9radzxaj7jvl0484ywwp4ed2zvxqw7jp9x
+    # Boris L (operator). Add the CI key and other operators, comma-separated.
+    # kms: arn:aws:kms:<region>:<account>:key/<id>
+    # azure_keyvault: https://<vault>.vault.azure.net/keys/<name>/<version>
+    # gcp_kms: projects/<project>/locations/<location>/keyRings/<ring>/cryptoKeys/<key>
+    # pgp: <fingerprint>

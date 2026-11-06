@@ -1,0 +1,52 @@
+# VM installation (docs/vm-installation.md): jump host, Nexus and cluster nodes, three groups of azure/vms.
+# Import together with catalog/kubemarine. The stack sets the jump host's allowed_cidrs (operator addresses) and
+# subnets: "public" for the jump host, "kubernetes" with public: false (no default outbound access).
+components:
+  terraform:
+    vm-group:
+      metadata:
+        type: abstract
+        component: azure/vms
+      vars:
+        resource_group_name: !terraform.state network resource_group_name
+        subnet_ids: !terraform.state network subnet_ids
+    jump-host:
+      metadata:
+        component: azure/vms
+        inherits: [vm-group]
+      vars:
+        name: jump
+        public: true
+        ports: [22]
+        vms:
+          jump: { instance_type: Standard_B2s, subnet: public, volume_size: 30 }
+    nexus:
+      metadata:
+        component: azure/vms
+        inherits: [vm-group]
+      vars:
+        name: nexus
+        ports: [22, 8081, 8082]
+        allowed_cidrs: [!terraform.state network vpc_cidr]
+        vms:
+          nexus: { instance_type: Standard_D2s_v5, subnet: kubernetes, volume_size: 200 }
+    vms:
+      metadata:
+        component: azure/vms
+        inherits: [vm-group]
+      vars:
+        name: nodes
+        ports: [22, 80, 443, 6443]
+        allowed_cidrs: [!terraform.state network vpc_cidr]
+        vms:
+          control-plane-1: { roles: [control-plane], instance_type: Standard_D4s_v5, subnet: kubernetes }
+          control-plane-2: { roles: [control-plane], instance_type: Standard_D4s_v5, subnet: kubernetes }
+          control-plane-3: { roles: [control-plane], instance_type: Standard_D4s_v5, subnet: kubernetes }
+          worker-1: { roles: [worker], instance_type: Standard_D4s_v5, subnet: kubernetes }
+          worker-2: { roles: [worker], instance_type: Standard_D4s_v5, subnet: kubernetes }
+    kubemarine:
+      vars:
+        kubemarine:
+          plugins:
+            calico:
+              mode: vxlan # Azure drops IPIP

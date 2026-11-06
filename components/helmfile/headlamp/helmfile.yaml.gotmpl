@@ -1,6 +1,6 @@
 repositories:
   - name: headlamp
-    url: https://kubernetes-sigs.github.io/headlamp/
+    url: {{ .Values | get "nexus_charts" .Values.chart_repository }}
 helmDefaults:
   wait: true
   timeout: 600

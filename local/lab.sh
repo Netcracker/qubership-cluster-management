@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Local Floci laboratory helpers. Run `local/lab.sh` without arguments for usage.
+# Operator helpers: the local Floci laboratory and the VM installation (secrets, SSH through the jump host,
+# Nexus, kubeconfig; see docs/vm-installation.md). Run `local/lab.sh` without arguments for usage.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -241,6 +242,132 @@ cmd_prepare_azure() {
     echo "$stack is ready. Kubeconfig: $path"
 }
 
+# --- VM installation: docs/vm-installation.md -------------------------------------------------------------
+
+# The operator key in local/age.key, unless SOPS_AGE_KEY, SOPS_AGE_KEY_CMD or SOPS_AGE_KEY_FILE picks another source.
+default_age_key() {
+    [[ -n ${SOPS_AGE_KEY:-}${SOPS_AGE_KEY_CMD:-}${SOPS_AGE_KEY_FILE:-} || ! -f local/age.key ]] ||
+        export SOPS_AGE_KEY_FILE=$PWD/local/age.key
+}
+
+cmd_secrets_init() {
+    local stack=$1 file tmp; check_stack "$stack"
+    file=secrets/$stack.yaml tmp=$(mktemp -d)
+    [[ ! -e $file ]] || die "$file exists; edit it with: sops $file"
+    default_age_key
+    ssh-keygen -q -t ed25519 -N '' -C "$stack" -f "$tmp/id"
+    {
+        echo "TF_VAR_ssh_public_key: $(cat "$tmp/id.pub")"
+        echo 'TF_VAR_ssh_private_key: |'; sed 's/^/  /' "$tmp/id"
+        echo "NEXUS_ADMIN_PASSWORD: $(head -c 64 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 24)"
+    } | sops encrypt --filename-override "$file" --input-type yaml --output-type yaml /dev/stdin >"$tmp/out" &&
+        mv "$tmp/out" "$file"
+    rm -rf "$tmp"
+    [[ -f $file ]] || die "Encryption failed; check the keys in .sops.yaml."
+    echo "Created $file. Add cloud credentials (environment variables) with: sops $file"
+}
+
+# Runs a command with the stack's decrypted secrets as environment variables; nothing is written to disk.
+cmd_with_secrets() {
+    local stack=$1; shift; check_stack "$stack"
+    [[ -f secrets/$stack.yaml ]] || die "No secrets/$stack.yaml; run local/lab.sh secrets-init $stack."
+    (($#)) || die 'Usage: local/lab.sh with-secrets STACK COMMAND...'
+    default_age_key
+    exec sops exec-env "secrets/$stack.yaml" "$(printf '%q ' "$@")"
+}
+
+# Jump host, Nexus, nodes and tunnel port from the kubemarine component; "(computed)" = not applied yet.
+vm_context() {
+    local config; config=$(describe kubemarine "$1")
+    JUMP=$(jq -r '(.vars.jump_host | objects | .address) // empty' <<<"$config")
+    NEXUS=$(jq -r '.vars.nexus_address | select(. != "(computed)") // empty' <<<"$config")
+    NODES=$(jq -c '.vars.nodes | arrays' <<<"$config")
+    PORT=$(jq -r '.settings.tunnel_port // 1080' <<<"$config")
+    SSH_USER=$(jq -r '.vars.ssh_user // "ubuntu"' <<<"$config")
+    [[ -n $JUMP ]] || die "Stack $1 has no jump host yet: apply jump-host first."
+}
+
+# The private key from the secrets (with-secrets) as a file for this run only.
+ssh_setup() {
+    [[ -n ${TF_VAR_ssh_private_key:-} ]] || die "No SSH key: run as local/lab.sh with-secrets $1 local/lab.sh ..."
+    KEY=$RUNTIME/ssh-$$.key
+    (umask 077 && printf '%s\n' "$TF_VAR_ssh_private_key" >"$KEY")
+    trap 'rm -f "$KEY"' EXIT
+    SSH_OPTS=(-i "$KEY" -o IdentitiesOnly=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new
+        -o "UserKnownHostsFile=$RUNTIME/known_hosts-$1")
+}
+on_jump() { ssh "${SSH_OPTS[@]}" "$SSH_USER@$JUMP" "$@"; }
+through_jump() { # private address, command...
+    ssh "${SSH_OPTS[@]}" -o "ProxyCommand=ssh ${SSH_OPTS[*]} -W %h:%p $SSH_USER@$JUMP" "$SSH_USER@$1" "${@:2}"
+}
+# Unix sockets are limited to 108 chars and ssh appends 17 while binding: a checkout path would not fit.
+tunnel_sock() { echo "/tmp/qcm-tunnel-$1.sock"; }
+tunnel_running() { ssh -S "$(tunnel_sock "$1")" -O check tunnel 2>/dev/null; }
+# curl reads only the lowercase http_proxy; Go tools read either.
+proxy_env() {
+    export http_proxy=socks5://127.0.0.1:$PORT
+    export HTTP_PROXY=$http_proxy HTTPS_PROXY=$http_proxy https_proxy=$http_proxy
+}
+
+cmd_tunnel() {
+    local stack=$1; check_stack "$stack"
+    if [[ ${2:-} == stop ]]; then
+        ssh -S "$(tunnel_sock "$stack")" -O exit tunnel 2>/dev/null || true
+        echo "Tunnel for $stack stopped."; return
+    fi
+    vm_context "$stack"; ssh_setup "$stack"
+    tunnel_running "$stack" && { echo "Tunnel for $stack is already running on 127.0.0.1:$PORT."; return; }
+    wait_for "SSH on the jump host $JUMP" 300 quiet on_jump true
+    ssh "${SSH_OPTS[@]}" -f -N -M -S "$(tunnel_sock "$stack")" -D "127.0.0.1:$PORT" \
+        -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 "$SSH_USER@$JUMP"
+    echo "SOCKS proxy socks5://127.0.0.1:$PORT into the $stack network (stop: local/lab.sh tunnel $stack stop)."
+}
+
+cmd_nexus_install() {
+    local stack=$1 bundle=${BUNDLE_DIR:-$RUNTIME/bundle}; check_stack "$stack"
+    vm_context "$stack"; ssh_setup "$stack"
+    [[ -n $NEXUS ]] || die "Stack $stack has no Nexus VM yet: apply nexus first."
+    [[ -f $bundle/nexus.tar.gz ]] || die "No bundle in $bundle; run bundle/build.sh."
+    wait_for "SSH on Nexus $NEXUS" 300 quiet through_jump "$NEXUS" true
+    echo "Copying Nexus to $NEXUS through $JUMP"
+    through_jump "$NEXUS" 'cat >/tmp/nexus.tar.gz' <"$bundle/nexus.tar.gz"
+    through_jump "$NEXUS" sudo bash -s <bundle/nexus-install.sh
+    echo "Nexus is starting on $NEXUS; nexus-load waits for it."
+}
+
+cmd_nexus_load() {
+    local stack=$1; check_stack "$stack"
+    vm_context "$stack"
+    [[ -n $NEXUS ]] || die "Stack $stack has no Nexus VM yet: apply nexus first."
+    tunnel_running "$stack" || die "Start the tunnel first: local/lab.sh with-secrets $stack local/lab.sh tunnel $stack"
+    proxy_env
+    NEXUS_URL=http://$NEXUS:8081 bash bundle/load.sh
+}
+
+# A shell or a command on a private VM (Nexus, a node) through the jump host.
+cmd_ssh() {
+    local stack=$1 host=${2:-}; check_stack "$stack"
+    [[ -n $host ]] || die 'Usage: local/lab.sh ssh STACK PRIVATE_ADDRESS [COMMAND...]'
+    vm_context "$stack"; ssh_setup "$stack"
+    through_jump "$host" "${@:3}"
+}
+
+# After kubemarine apply: kubeconfig from the first control-plane, reaching the API through the tunnel.
+cmd_prepare_vms() {
+    local stack=$1 cp kubeconfig; check_stack "$stack"
+    vm_context "$stack"; ssh_setup "$stack"
+    cp=$(jq -r '[.[] | select(.roles | index("control-plane"))][0].internal_address // empty' <<<"${NODES:-[]}")
+    [[ -n $cp ]] || die "Stack $stack has no control-plane node yet: apply vms first."
+    tunnel_running "$stack" || die "Start the tunnel first: local/lab.sh with-secrets $stack local/lab.sh tunnel $stack"
+    kubeconfig=$RUNTIME/kubeconfig-$stack.yaml
+    through_jump "$cp" sudo cat /etc/kubernetes/admin.conf >"$kubeconfig.tmp"
+    yq -i ".clusters[0].cluster.server = \"https://$cp:6443\" |
+        .clusters[0].cluster.\"proxy-url\" = \"socks5://127.0.0.1:$PORT\"" "$kubeconfig.tmp"
+    chmod 600 "$kubeconfig.tmp" && mv "$kubeconfig.tmp" "$kubeconfig"
+    kubectl --kubeconfig "$kubeconfig" wait --for=condition=Ready nodes --all --timeout=300s
+    echo "$stack is ready. Kubeconfig: $kubeconfig"
+}
+
 cmd_check() {
     local init=false render=false stack=customer1-aws-staging
     while (($#)); do
@@ -258,6 +385,7 @@ cmd_check() {
     for module in $(find components/terraform -name versions.tf -not -path '*/.terraform/*' -exec dirname {} \;); do
         if $init; then terraform -chdir="$module" init -backend=false -input=false -no-color; fi
         terraform -chdir="$module" validate -no-color
+        if $init && [[ -d $module/tests ]]; then terraform -chdir="$module" test -no-color; fi
     done
     bash -n local/lab.sh
     if $render; then
@@ -277,6 +405,13 @@ case ${1:-} in
     start-azure) cmd_start_azure ;;
     prepare-azure) cmd_prepare_azure "${2:-}" ;;
     check) shift; cmd_check "$@" ;;
+    secrets-init) cmd_secrets_init "${2:-}" ;;
+    with-secrets) shift; cmd_with_secrets "$@" ;;
+    tunnel) cmd_tunnel "${2:-}" "${3:-}" ;;
+    nexus-install) cmd_nexus_install "${2:-}" ;;
+    nexus-load) cmd_nexus_load "${2:-}" ;;
+    prepare-vms) cmd_prepare_vms "${2:-}" ;;
+    ssh) shift; cmd_ssh "$@" ;;
     *) cat >&2 <<'EOF'
 Usage: local/lab.sh <command>
   start                  create the lab network, start Floci AWS and its UI, wait for health
@@ -287,6 +422,14 @@ Usage: local/lab.sh <command>
   prepare-azure STACK    write the kubeconfig for a local Floci Azure cluster
   check [--init] [--render] [--stack STACK]
                          validate stacks and Terraform; --init downloads providers, --render renders Helmfile
+VM installation (docs/vm-installation.md); SSH commands run as: local/lab.sh with-secrets STACK local/lab.sh ...
+  secrets-init STACK     create secrets/STACK.yaml (SSH key, Nexus password) encrypted for the keys in .sops.yaml
+  with-secrets STACK CMD run CMD with the decrypted secrets as environment variables
+  tunnel STACK [stop]    SOCKS proxy through the jump host into the private network
+  nexus-install STACK    copy Nexus from the bundle to its VM through the jump host and start it
+  nexus-load STACK       create the Nexus repositories and upload the bundle (through the tunnel)
+  prepare-vms STACK      after kubemarine: kubeconfig from the control plane, API through the tunnel
+  ssh STACK ADDRESS [CMD] shell or command on a private VM through the jump host
 EOF
        exit 2 ;;
 esac

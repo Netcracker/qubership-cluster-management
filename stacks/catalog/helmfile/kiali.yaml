@@ -3,7 +3,8 @@
     "helmfile": {
       "kiali": {
         "vars": {
-          "chart_version": "2.33.0",
+          "chart_version": !include bundle/manifest.yaml .charts.kiali.version,
+          "chart_repository": !include bundle/manifest.yaml .charts.kiali.repository,
           "values": {
             "cr": {
               "create": true,

@@ -4,7 +4,8 @@
 
 Atmos combines customer and environment parameters with reusable components and executes deployment workflows.
 Terraform manages infrastructure; Helmfile manages Helm releases inside Kubernetes.
-This repository currently contains the Terraform/Helmfile project, without Kubemarine integration.
+This repository contains the Terraform/Helmfile project. Besides managed clusters, Kubemarine installs Kubernetes on VMs of any
+cloud in an isolated network fed by Nexus ([VM installation](vm-installation.md)).
 
 AWS is used locally through Floci. Azure/GCP implementations and stack templates exist, but cloud end-to-end deployment has not been verified.
 The AWS Kubernetes module creates EKS/IAM resources; Floci provides the local k3s node.
@@ -53,9 +54,10 @@ Changing an implementation affects every stack using that implementation.
 atmos.yaml
 components/
   terraform/
-    aws/{network,kubernetes,load-balancer,nexus}/
-    azure/{network,kubernetes,load-balancer}/
-    gcp/{network,kubernetes,load-balancer}/
+    aws/{network,kubernetes,load-balancer,nexus,vms}/
+    azure/{network,kubernetes,load-balancer,vms}/
+    gcp/{network,kubernetes,load-balancer,vms}/
+    kubemarine/
   helmfile/
     argocd/{helmfile.yaml.gotmpl,values.yaml.gotmpl}
     istio/{helmfile.yaml.gotmpl,values-base.yaml.gotmpl,values-istiod.yaml.gotmpl}
@@ -80,6 +82,8 @@ workflows/
 local/{compose.yml,settings.example.json,settings.json,scripts/,floci-data/}
 .local-runtime/
 docs/{architecture.md,local-development.md,deployment.md}
+bundle/                        bundle manifest, build/load scripts, Nexus install script
+secrets/                       SOPS-encrypted per-stack environment variables (.sops.yaml lists the keys)
 ```
 
 Local settings, `.local-runtime`, Floci data, and Terraform state are excluded from Git.
@@ -170,18 +174,33 @@ Dependencies are passed as input identifiers rather than by including another co
 | AWS network | VPC, subnets, gateway, routes; exports vpc_id and subnet_ids |
 | AWS kubernetes | EKS/IAM; consumes network subnet_ids |
 | AWS nexus | VM and access rules; consumes the VPC and one subnet |
+| AWS vms | Group of EC2 VMs (jump host, Nexus or nodes): key pair, security group, ports open to given CIDRs |
 | AWS load-balancer | ALB, target groups, rules, attachments; reads network, EC2 node, and existing Kubernetes Services |
 | Azure network | Resource group, VNet, subnets |
 | Azure kubernetes | AKS, identity, and subnet permissions |
 | Azure load-balancer | Standard TCP LB with explicitly configured backend addresses |
+| Azure vms | Group of Linux VMs: NSG, optional public IPs; consumes network resource group and subnets |
 | GCP network | VPC, subnet, secondary ranges |
 | GCP kubernetes | GKE, service account, node pool; consumes network configuration |
 | GCP load-balancer | Regional passthrough TCP LB with explicitly configured backend VMs |
+| GCP vms | Group of Compute instances: firewall rules by tag, optional external IPs; consumes network VPC and subnets |
+| kubemarine | Cloud-independent: builds `cluster.yaml` from the `vms`, `jump-host` and `nexus` outputs and runs `kubemarine install` through the jump host |
 
 Matching component names do not imply identical cloud capabilities. See each module's variables.tf and outputs.tf for its contract.
 AWS catalogs use `!terraform.state`: Kubernetes reads network subnet_ids, Nexus reads vpc_id and `.subnet_ids.a`,
 and ALB reads the VPC and all subnets. Therefore, network is created first and deleted last.
 Access preparation follows Kubernetes; applications follow access; ALB follows applications.
+
+### Kubernetes on VMs (Kubemarine)
+
+A VM stack imports `catalog/<cloud>/vms` and `catalog/kubemarine` instead of `catalog/<cloud>/kubernetes`. It has
+three groups of the generic `<cloud>/vms` module — `jump-host`, `nexus`, `vms` (nodes) — and the cloud-independent
+`kubemarine` component, which reads their `vms` outputs through `!terraform.state`. Nodes and Nexus are in private
+subnets; everything is installed from Nexus, filled from the bundle in `bundle/`. The full procedure, secrets and
+troubleshooting are in [VM installation](vm-installation.md).
+
+Chart versions and repositories of all Helmfile catalogs come from `bundle/manifest.yaml` (`!include`); a VM stack
+sets `helmfile.vars.nexus_charts`, so the same Helmfiles pull charts from Nexus.
 
 ## Helmfile and stack values
 

@@ -1,6 +1,6 @@
 repositories:
   - name: kiali
-    url: https://kiali.org/helm-charts
+    url: {{ .Values | get "nexus_charts" .Values.chart_repository }}
 helmDefaults:
   wait: true
   timeout: 600

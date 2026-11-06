@@ -3,7 +3,8 @@
     "helmfile": {
       "istio": {
         "vars": {
-          "chart_version": "1.30.6",
+          "chart_version": !include bundle/manifest.yaml .charts.istiod.version,
+          "chart_repository": !include bundle/manifest.yaml .charts.istiod.repository,
           "base_values": {
             "defaultRevision": "default"
           },
