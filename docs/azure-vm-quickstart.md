@@ -157,7 +157,8 @@ What you will see, in order (about 1–2 hours in total, most of it Kubemarine a
 |---|---|---|
 | `network` | Resource group `customer1-azure-staging-rg`, VNet `10.60.0.0/16`, subnets `public` and `kubernetes` | 1–2 min |
 | `open-access` | Jump host, then the SOCKS tunnel `127.0.0.1:1080` through it | 2–4 min |
-| `machines` (parallel) | **nexus:** VM → Nexus copied from the bundle and started → 2.4 GB uploaded through the tunnel; **nodes:** 5 VMs | 10–40 min, depends on your upload speed |
+| `nodes` | 5 VMs | 2–4 min |
+| `nexus` | VM → Nexus copied from the bundle and started → 2.4 GB uploaded through the tunnel | 10–40 min, depends on your upload speed |
 | `kubemarine` | `cluster.yaml` generated, `kubemarine install` streams its log | 30–60 min |
 | `access` | kubeconfig taken from control-plane-1, waits for all nodes `Ready` | 1–5 min |
 | `apps` | Istio, Argo CD, Kiali operator, MinIO, Headlamp from Nexus | 10–15 min |

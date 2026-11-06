@@ -27,8 +27,8 @@ Managed clusters (EKS/AKS/GKE stacks) are unchanged and still pull charts and im
 |---|---|---|
 | 5.1 | VPC/VNet with a public subnet for the jump host and private ones for everything else | `terraform apply network` |
 | — | Jump host, then a SOCKS tunnel through it | `workflow open-access` |
-| 5.2 | **In parallel:** Nexus VM → Nexus installed from the bundle → bundle uploaded; cluster node VMs | `workflow deploy-nexus` ∥ `terraform apply vms` |
-| 5.3 | The parallel step finishes only when both branches have | — |
+| 5.2 | Cluster node VMs, then Nexus VM → Nexus installed from the bundle → bundle uploaded | `terraform apply vms`, `workflow deploy-nexus` |
+| 5.3 | Not parallel: the VM groups share one Terraform directory and its selected workspace | — |
 | 5.4–5.5 | `cluster.yaml` generated from the VM outputs; `kubemarine install` runs on the operator machine, through the jump host | `terraform apply kubemarine` |
 | — | kubeconfig taken from the control plane; the API is reached through the tunnel | `lab.sh prepare-vms` |
 | 5.6 | Helmfile installs the apps; charts come from Nexus, images through containerd mirrors | `workflow deploy-apps` |
@@ -46,8 +46,8 @@ The same component names exist in every cloud, so a stack switches cloud by swit
 | `vms` | `<cloud>/vms` | Cluster nodes with Kubemarine roles, ports 22/80/443/6443 open to the VPC, all traffic inside the group |
 | `kubemarine` | `kubemarine` | Cloud-independent: builds `cluster.yaml` and runs `kubemarine install` |
 
-`<cloud>/vms` is one generic "group of VMs" module; every group has its own state, so groups are created in parallel
-and the jump host is destroyed alone. Its output `vms` (name, roles, address, internal address) is what the
+`<cloud>/vms` is one generic "group of VMs" module; every group has its own state, so the jump host is destroyed alone.
+Groups are applied one after another: they share the module directory, and parallel applies switch each other's workspace. Its output `vms` (name, roles, address, internal address) is what the
 `kubemarine` component and `local/lab.sh` read. Another provider (OpenStack, vSphere) needs only a module with the
 same inputs and output.
 

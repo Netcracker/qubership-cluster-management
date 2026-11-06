@@ -300,7 +300,9 @@ on_jump() { ssh "${SSH_OPTS[@]}" "$SSH_USER@$JUMP" "$@"; }
 through_jump() { # private address, command...
     ssh "${SSH_OPTS[@]}" -o "ProxyCommand=ssh ${SSH_OPTS[*]} -W %h:%p $SSH_USER@$JUMP" "$SSH_USER@$1" "${@:2}"
 }
-tunnel_running() { ssh -S "$RUNTIME/tunnel-$1.sock" -O check tunnel 2>/dev/null; }
+# Unix sockets are limited to 108 chars and ssh appends 17 while binding: a checkout path would not fit.
+tunnel_sock() { echo "/tmp/qcm-tunnel-$1.sock"; }
+tunnel_running() { ssh -S "$(tunnel_sock "$1")" -O check tunnel 2>/dev/null; }
 # curl reads only the lowercase http_proxy; Go tools read either.
 proxy_env() {
     export http_proxy=socks5://127.0.0.1:$PORT
@@ -310,13 +312,13 @@ proxy_env() {
 cmd_tunnel() {
     local stack=$1; check_stack "$stack"
     if [[ ${2:-} == stop ]]; then
-        ssh -S "$RUNTIME/tunnel-$stack.sock" -O exit tunnel 2>/dev/null || true
+        ssh -S "$(tunnel_sock "$stack")" -O exit tunnel 2>/dev/null || true
         echo "Tunnel for $stack stopped."; return
     fi
     vm_context "$stack"; ssh_setup "$stack"
     tunnel_running "$stack" && { echo "Tunnel for $stack is already running on 127.0.0.1:$PORT."; return; }
     wait_for "SSH on the jump host $JUMP" 300 quiet on_jump true
-    ssh "${SSH_OPTS[@]}" -f -N -M -S "$RUNTIME/tunnel-$stack.sock" -D "127.0.0.1:$PORT" \
+    ssh "${SSH_OPTS[@]}" -f -N -M -S "$(tunnel_sock "$stack")" -D "127.0.0.1:$PORT" \
         -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 "$SSH_USER@$JUMP"
     echo "SOCKS proxy socks5://127.0.0.1:$PORT into the $stack network (stop: local/lab.sh tunnel $stack stop)."
 }
@@ -339,7 +341,7 @@ cmd_nexus_load() {
     [[ -n $NEXUS ]] || die "Stack $stack has no Nexus VM yet: apply nexus first."
     tunnel_running "$stack" || die "Start the tunnel first: local/lab.sh with-secrets $stack local/lab.sh tunnel $stack"
     proxy_env
-    NEXUS_URL=http://$NEXUS:8081 bundle/load.sh
+    NEXUS_URL=http://$NEXUS:8081 bash bundle/load.sh
 }
 
 # A shell or a command on a private VM (Nexus, a node) through the jump host.

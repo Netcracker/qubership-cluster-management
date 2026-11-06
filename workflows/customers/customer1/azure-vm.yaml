@@ -2,28 +2,19 @@
 #   local/lab.sh with-secrets customer1-azure-staging atmos workflow deploy-vm -f customers/customer1/azure-vm
 workflows:
   deploy-vm:
-    description: 'Deploy customer1 Azure staging (Kubemarine on VMs): network, jump host, then Nexus and nodes in parallel, Kubemarine, apps; closes access at the end'
+    description: 'Deploy customer1 Azure staging (Kubemarine on VMs): network, jump host, nodes, Nexus, Kubemarine, apps; closes access at the end'
     stack: customer1-azure-staging
     steps:
     - name: network
       command: terraform apply network -auto-approve
     - name: open-access
       command: workflow open-access -f customers/customer1/azure-vm
-    - name: machines
-      type: parallel
-      max_concurrency: 2
-      fail:
-        mode: wait_all
-      output:
-        mode: prefixed
-        show_summary: true
-      steps:
-      - name: nexus
-        type: atmos
-        command: workflow deploy-nexus -f customers/customer1/azure-vm
-      - name: nodes
-        type: atmos
-        command: terraform apply vms -auto-approve
+    # Sequential on purpose: jump-host, nexus and vms share one Terraform directory (and its selected workspace),
+    # so parallel applies would run against each other's state.
+    - name: nodes
+      command: terraform apply vms -auto-approve
+    - name: nexus
+      command: workflow deploy-nexus -f customers/customer1/azure-vm
     - name: kubemarine
       command: terraform apply kubemarine -auto-approve
     - name: access

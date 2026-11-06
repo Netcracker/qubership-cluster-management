@@ -33,8 +33,9 @@
   - `<cloud>/vms` — общий модуль «группа VM»: `name`, `vms` (map: roles, instance_type, subnet, volume_size),
     `public`, `ports`, `allowed_cidrs`, `ssh_public_key`. Выход `vms` = [{name, roles, address, internal_address}].
     В стеке три экземпляра: `jump-host` (public, 22 от admin CIDR), `nexus` (private, 22/8081/8082 от VPC CIDR),
-    `vms` (ноды, private, 22/80/443/6443 от VPC CIDR). Без ссылок между SG разных компонентов → можно
-    применять параллельно и удалять jump-host отдельно.
+    `vms` (ноды, private, 22/80/443/6443 от VPC CIDR). Без ссылок между SG разных компонентов → jump-host
+    удаляется отдельно. Параллельно применять НЕЛЬЗЯ: общий каталог модуля и `.terraform/environment` → apply
+    шёл на чужой workspace (на Azure nexus снёс ноды, 2026-11-06). Шаги nodes → nexus последовательно.
   - `kubemarine` (облаконезависимый): строит cluster.yaml из выходов `vms`, `jump-host`, `nexus` и запускает
     `kubemarine install` на машине оператора (tools-образ) через jump host как `gateway_nodes`.
 - Шаг (3) MoM «удалить jump host переменной» заменён на `atmos terraform destroy jump-host` (отдельный компонент).
