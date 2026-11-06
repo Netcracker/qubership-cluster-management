@@ -190,11 +190,13 @@ local/lab.sh with-secrets customer1-azure-staging local/lab.sh ssh customer1-azu
 
 ## 9. Open the applications
 
-While access is open, port-forward from the container (`--network host` makes it reachable from your browser):
+While access is open, port-forward from the container. `--address 0.0.0.0` is needed: on Docker Desktop the
+container's `127.0.0.1` is not your machine's. Docker Desktop also needs Settings → Resources → Network →
+**Enable host networking** for `--network host` to reach your browser.
 
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo
-kubectl -n argocd port-forward svc/argocd-server 8080:80      # http://127.0.0.1:8080, user admin
+kubectl -n argocd port-forward --address 0.0.0.0 svc/argocd-server 8080:80   # http://localhost:8080, user admin
 ```
 
 The same way: Headlamp (`-n headlamp svc/headlamp`), MinIO (`-n storage svc/minio-console`), Kiali
