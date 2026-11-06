@@ -1,5 +1,6 @@
 # Operator tools for Atmos stacks: the versions match docs/getting-started.md.
 FROM docker:28.5.2-cli AS docker
+RUN apk add --no-cache binutils && strip /usr/local/bin/docker /usr/local/libexec/docker/cli-plugins/docker-compose
 
 FROM ubuntu:24.04
 ARG ATMOS_VERSION=1.231.1-rc.0
@@ -38,12 +39,16 @@ RUN set -eux; cd /tmp \
  && curl -fsSL "https://github.com/google/go-containerregistry/releases/download/v${CRANE_VERSION}/go-containerregistry_Linux_x86_64.tar.gz" | tar -xz -C /usr/local/bin crane \
  && curl -fsSLo /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/v${YQ_VERSION}/yq_linux_amd64" \
  && chmod +x /usr/local/bin/sops /usr/local/bin/yq \
- && rm -rf /tmp/*
+ && rm -rf /usr/local/aws-cli/v2/*/dist/awscli/examples /usr/local/aws-cli/v2/*/dist/aws_completer /usr/local/bin/aws_completer \
+ && apt-get update && apt-get install -y --no-install-recommends binutils \
+ && strip /root/.local/share/helm/plugins/helm-diff/bin/diff \
+ && apt-get purge -y --auto-remove binutils && rm -rf /var/lib/apt/lists/* /tmp/*
 
 # Kubemarine installs Kubernetes on <cloud>/vms through the jump host; a venv keeps its pinned dependencies apart.
 RUN python3 -m venv /opt/kubemarine \
  && /opt/kubemarine/bin/pip install --no-cache-dir "kubemarine==${KUBEMARINE_VERSION}" \
- && ln -s /opt/kubemarine/bin/kubemarine /usr/local/bin/kubemarine
+ && /opt/kubemarine/bin/pip uninstall -y -q pip \
+ && ln -s /opt/kubemarine/bin/kubemarine /opt/kubemarine/bin/_kubemarine /usr/local/bin/
 
 WORKDIR /workspace
 CMD ["bash"]
