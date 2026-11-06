@@ -19,10 +19,26 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      # A fork's PR gets a read-only token: build the image without publishing and pass it to the jobs as an artifact.
+      LOCAL: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository }}
     outputs:
-      image: ${{ steps.ref.outputs.image }}
+      image: ${{ steps.ref.outputs.image || 'qcm-tools:local' }}
+      local: ${{ env.LOCAL }}
     steps:
+      - uses: actions/checkout@v7
+        if: env.LOCAL == 'true'
+      - name: Build tools image locally
+        if: env.LOCAL == 'true'
+        run: docker build -t qcm-tools:local . && docker save -o "$RUNNER_TEMP/tools-image.tar" qcm-tools:local
+      - uses: actions/upload-artifact@v7
+        if: env.LOCAL == 'true'
+        with:
+          name: tools-image
+          path: ${{ runner.temp }}/tools-image.tar
+          retention-days: 1
       - name: Build and publish tools image
+        if: env.LOCAL != 'true'
         id: build
         uses: netcracker/qubership-workflow-hub/actions/docker-action@e6afd0a6bcc4f24d73e3e4d5fb9a31ada009e3f1 # v2.8.2
         with:
@@ -32,6 +48,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Image reference
+        if: env.LOCAL != 'true'
         id: ref
         env:
           TAGS: ${{ steps.build.outputs.final-tags }}
@@ -45,12 +62,22 @@ jobs:
       packages: read
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        if: needs.image.outputs.local == 'true'
+        with:
+          name: tools-image
+          path: ${{ runner.temp }}
+      - name: Get tools image
+        env:
+          LOCAL: ${{ needs.image.outputs.local }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ $LOCAL == true ]]; then docker load -i "$RUNNER_TEMP/tools-image.tar"
+          else echo "$TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin; fi
       - name: Validate stacks and Terraform modules
         env:
           IMAGE: ${{ needs.image.outputs.image }}
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "$TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker run --rm -v "$PWD:$PWD" -w "$PWD" "$IMAGE" bash ./local/lab.sh check --init
 
   deploy:
@@ -83,13 +110,22 @@ jobs:
       IMAGE: ${{ needs.image.outputs.image }}
     steps:
       - uses: actions/checkout@v7
-      - name: Start tools container
+      - uses: actions/download-artifact@v8
+        if: needs.image.outputs.local == 'true'
+        with:
+          name: tools-image
+          path: ${{ runner.temp }}
+      - name: Get tools image
         env:
+          LOCAL: ${{ needs.image.outputs.local }}
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ $LOCAL == true ]]; then docker load -i "$RUNNER_TEMP/tools-image.tar"
+          else echo "$TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin; fi
+      - name: Start tools container
         # Host network: scripts reach Floci and k3s via localhost and Docker network IPs.
         # Same workspace path: Compose bind mounts are resolved by the host daemon.
         run: |
-          echo "$TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker run -d --name tools --network host \
             -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:$PWD" -w "$PWD" \
             -e ATMOS_COMPONENTS_TERRAFORM_APPLY_AUTO_APPROVE=true \
