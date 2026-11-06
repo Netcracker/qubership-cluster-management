@@ -15,7 +15,8 @@ components:
         mirrored_registries: !include bundle/manifest.yaml '[.app_images[] | split("/")[0]] | unique'
 helmfile:
   vars:
-    nexus_charts: !terraform.state nexus '"http://" + .vms[0].internal_address + ":8081/repository/bundle/charts"'
+    # Atmos drops a string literal that starts the expression ('"http://" + ...' yields no scheme): start with a path.
+    nexus_charts: !terraform.state nexus '.vms[0].internal_address | "http://" + . + ":8081/repository/bundle/charts"'
   env:
     HTTP_PROXY: socks5://127.0.0.1:1080
     HTTPS_PROXY: socks5://127.0.0.1:1080
