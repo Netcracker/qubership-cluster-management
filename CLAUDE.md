@@ -55,7 +55,9 @@
   на docker.io/quay.io/ghcr.io/registry.k8s.io с `override_path`.
 - Kubemarine 0.55.0: по умолчанию K8s v1.34.2, calico v3.32.0, nginx-ingress v1.16.0 (ghcr.io/netcracker).
   Нужен containerd 2.2.* → он есть в Ubuntu 24.04 (проверено), поэтому образ нод — Ubuntu 24.04.
-- Azure дропает IPIP → Calico VXLAN (в `catalog/azure/vms.yaml`).
+- Azure дропает IPIP → Calico VXLAN (в `catalog/azure/vms.yaml`). Kubemarine по умолчанию `crossSubnet: true` →
+  внутри подсети трафик подов без инкапсуляции → облака его дропают (на Azure: DNS из подов не работал, 2026-11-06).
+  `crossSubnet: false` в `catalog/kubemarine.yaml` для всех облаков.
 - Инструменты в tools-образе: sops 3.13.3, age 1.3.2, crane 0.22.1 (+ kubemarine 0.55.0 в venv).
 
 ## Факты о среде (проверено)
@@ -96,6 +98,9 @@
 - Загрузка Nexus в managed-схеме: тем же загрузчиком, но пока не встроено в workflow.
 - Проверка на настоящих облаках: нужен аккаунт/подписка/проект.
 - Сохранение логов Kubemarine (dump) в S3 — пункт 6.
+- Отложено (2026-11-06): заменить `lab.sh with-secrets` (sops exec-env) на встроенное `atmos secret` (есть в 1.231.1-rc.0,
+  EXPERIMENTAL, SOPS-провайдер, `!secret`, `atmos secret exec`). Проверить сначала: работает ли `!secret` в секции `env`
+  (в `vars` секрет попадёт в tfvars.json), поддерживает ли Go SDK sops `SOPS_AGE_KEY_CMD`.
 
 ## Прогресс (2026-11-04)
 - [x] Сети: флаг `public`, выход `vpc_cidr` (aws/azure/gcp)
