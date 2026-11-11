@@ -1,0 +1,46 @@
+# VM installation (docs/vm-installation.md): jump host, Nexus and cluster nodes, three groups of aws/vms.
+# Import together with catalog/kubemarine. The stack sets ami_id (Ubuntu 24.04 in its region), the jump host's
+# allowed_cidrs (operator addresses) and subnets: "public" for the jump host, "a"/"b" private (public: false).
+components:
+  terraform:
+    vm-group:
+      metadata:
+        type: abstract
+        component: aws/vms
+      vars:
+        vpc_id: !terraform.state network vpc_id
+        subnet_ids: !terraform.state network subnet_ids
+    jump-host:
+      metadata:
+        component: aws/vms
+        inherits: [vm-group]
+      vars:
+        name: jump
+        public: true
+        ports: [22]
+        vms:
+          jump: { instance_type: t3.small, subnet: public, volume_size: 20 }
+    nexus:
+      metadata:
+        component: aws/vms
+        inherits: [vm-group]
+      vars:
+        name: nexus
+        ports: [22, 8081, 8082]
+        allowed_cidrs: [!terraform.state network vpc_cidr]
+        vms:
+          nexus: { instance_type: m5.large, subnet: a, volume_size: 200 }
+    vms:
+      metadata:
+        component: aws/vms
+        inherits: [vm-group]
+      vars:
+        name: nodes
+        ports: [22, 80, 443, 6443]
+        allowed_cidrs: [!terraform.state network vpc_cidr]
+        vms:
+          control-plane-1: { roles: [control-plane], instance_type: m5.xlarge, subnet: a }
+          control-plane-2: { roles: [control-plane], instance_type: m5.xlarge, subnet: b }
+          control-plane-3: { roles: [control-plane], instance_type: m5.xlarge, subnet: a }
+          worker-1: { roles: [worker], instance_type: m5.xlarge, subnet: a }
+          worker-2: { roles: [worker], instance_type: m5.xlarge, subnet: b }

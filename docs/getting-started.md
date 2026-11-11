@@ -64,6 +64,12 @@ Run the remaining commands in that shell.
 | helm-diff | 3.15.13 | Helmfile change detection |
 | Helmfile | 1.8.1 | Application releases |
 | AWS CLI | 2.37.9 | AWS API/EKS tokens; AWS lab only |
+| Kubemarine | 0.55.0 | Kubernetes on VMs ([VM installation](vm-installation.md)); `pip install kubemarine`, Python 3.9–3.12 |
+| sops | 3.13.3 | Encrypted `secrets/<stack>.yaml` |
+| age | 1.3.2 | SOPS keys (`age-keygen`) |
+| crane | 0.22.1 | Image download and upload for the Nexus bundle |
+| yq | 4.53.6 | Bundle manifest and kubeconfig edits |
+| ssh | distribution | Jump host access for VM installation |
 | jq, curl | distribution | Script dependencies |
 
 The [Dockerfile](../Dockerfile) shows the exact download URLs. Install helm-diff after Helm:

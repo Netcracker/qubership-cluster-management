@@ -2,7 +2,8 @@ components:
   helmfile:
     headlamp:
       vars:
-        chart_version: 0.46.0
+        chart_version: !include bundle/manifest.yaml .charts.headlamp.version
+        chart_repository: !include bundle/manifest.yaml .charts.headlamp.repository
         values:
           fullnameOverride: headlamp
           image:

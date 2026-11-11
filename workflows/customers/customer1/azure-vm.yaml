@@ -1,0 +1,87 @@
+# Isolated VM installation (docs/vm-installation.md). Every workflow needs the stack secrets:
+#   local/lab.sh with-secrets customer1-azure-staging atmos workflow deploy-vm -f customers/customer1/azure-vm
+workflows:
+  deploy-vm:
+    description: 'Deploy customer1 Azure staging (Kubemarine on VMs): network, jump host, nodes, Nexus, Kubemarine, apps; closes access at the end'
+    stack: customer1-azure-staging
+    steps:
+    - name: network
+      command: terraform apply network -auto-approve
+    - name: open-access
+      command: workflow open-access -f customers/customer1/azure-vm
+    # Sequential on purpose: jump-host, nexus and vms share one Terraform directory (and its selected workspace),
+    # so parallel applies would run against each other's state.
+    - name: nodes
+      command: terraform apply vms -auto-approve
+    - name: nexus
+      command: workflow deploy-nexus -f customers/customer1/azure-vm
+    - name: kubemarine
+      command: terraform apply kubemarine -auto-approve
+    - name: access
+      type: shell
+      command: bash ./local/lab.sh prepare-vms customer1-azure-staging
+    - name: apps
+      command: workflow deploy-apps -f customers/customer1/azure-vm
+    - name: close-access
+      command: workflow close-access -f customers/customer1/azure-vm
+  deploy-nexus:
+    description: 'Internal branch: Nexus VM, Nexus from the bundle, bundle upload (all through the jump host)'
+    stack: customer1-azure-staging
+    steps:
+    - name: nexus-vm
+      command: terraform apply nexus -auto-approve
+    - name: nexus-install
+      type: shell
+      command: bash ./local/lab.sh nexus-install customer1-azure-staging
+    - name: nexus-load
+      type: shell
+      command: bash ./local/lab.sh nexus-load customer1-azure-staging
+  deploy-apps:
+    description: 'Install apps from Nexus through the tunnel (needs open-access)'
+    stack: customer1-azure-staging
+    steps:
+    - name: istio
+      command: helmfile apply istio
+    - name: argocd
+      command: helmfile apply argocd
+    - name: kiali
+      command: helmfile apply kiali
+    - name: minio
+      command: helmfile apply minio
+    - name: headlamp
+      command: helmfile apply headlamp
+  open-access:
+    description: 'Create the jump host and the SOCKS tunnel through it'
+    stack: customer1-azure-staging
+    steps:
+    - name: jump-host
+      command: terraform apply jump-host -auto-approve
+    - name: tunnel
+      type: shell
+      command: bash ./local/lab.sh tunnel customer1-azure-staging
+  close-access:
+    description: 'Stop the tunnel and destroy the jump host (MoM step 3); open-access brings it back'
+    stack: customer1-azure-staging
+    steps:
+    - name: tunnel
+      type: shell
+      command: bash ./local/lab.sh tunnel customer1-azure-staging stop
+    - name: jump-host
+      command: terraform destroy jump-host -auto-approve
+  destroy-vm:
+    description: 'Destroy customer1 Azure staging (Kubemarine on VMs) (VMs with the cluster on them, then the network)'
+    stack: customer1-azure-staging
+    steps:
+    - name: tunnel
+      type: shell
+      command: bash ./local/lab.sh tunnel customer1-azure-staging stop
+    - name: kubemarine
+      command: terraform destroy kubemarine -auto-approve
+    - name: vms
+      command: terraform destroy vms -auto-approve
+    - name: nexus
+      command: terraform destroy nexus -auto-approve
+    - name: jump-host
+      command: terraform destroy jump-host -auto-approve
+    - name: network
+      command: terraform destroy network -auto-approve
