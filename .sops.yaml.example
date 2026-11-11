@@ -1,3 +1,4 @@
 creation_rules:
   - path_regex: ^secrets/[^/]+\.yaml$
     age: REPLACE_WITH_OPERATOR_AGE_PUBLIC_KEY
+    # pgp: <fingerprint>   (comma-separated; the secret key must be in the gpg keyring)
