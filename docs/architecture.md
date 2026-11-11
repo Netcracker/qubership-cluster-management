@@ -2,13 +2,10 @@
 
 ## Purpose and scope
 
-Atmos combines customer and environment parameters with reusable components and executes deployment workflows.
-Terraform manages infrastructure; Helmfile manages Helm releases inside Kubernetes.
-This repository currently contains the Terraform/Helmfile project, without Kubemarine integration.
-
-AWS is used locally through Floci. Azure/GCP implementations and stack templates exist, but cloud end-to-end deployment has not been verified.
-The AWS Kubernetes module creates EKS/IAM resources; Floci provides the local k3s node.
-A real AWS deployment requires a separate worker-node and access design.
+Atmos resolves customer, cloud, and environment settings. Terraform provisions infrastructure.
+Helmfile installs applications. Managed stacks use the cloud Kubernetes module. Floci supplies
+the local AWS and Azure environments. Kubemarine stacks provision VMs and install Kubernetes
+over SSH with packages, images, and charts served by Nexus.
 
 ## Core concepts
 
@@ -51,36 +48,41 @@ Changing an implementation affects every stack using that implementation.
 atmos.yaml
 components/
   terraform/
-    aws/{network,kubernetes,load-balancer,nexus}/
-    azure/{network,kubernetes,load-balancer}/
-    gcp/{network,kubernetes,load-balancer}/
-  helmfile/
-    argocd/{helmfile.yaml.gotmpl,values.yaml.gotmpl}
-    istio/{helmfile.yaml.gotmpl,values-base.yaml.gotmpl,values-istiod.yaml.gotmpl}
-    kiali/{helmfile.yaml.gotmpl,values.yaml.gotmpl}
-    minio/{helmfile.yaml.gotmpl,values.yaml.gotmpl,values-bucket.yaml.gotmpl,charts/minio-bucket/}
-    headlamp/{helmfile.yaml.gotmpl,values.yaml.gotmpl}
+    aws/{network,kubernetes,load-balancer,nexus,vms}/
+    azure/{network,kubernetes,load-balancer,vms}/
+    gcp/{network,kubernetes,load-balancer,vms}/
+    kubemarine/                           # Kubernetes inventory and installer
+  helmfile/{argocd,istio,kiali,minio,headlamp}/
 stacks/
-  catalog/{aws,azure,gcp,helmfile}/
+  catalog/
+    {aws,azure,gcp}/                       # cloud infrastructure settings
+    helmfile/                             # shared application settings
+    kubemarine/                           # VM groups, installer, Nexus chart settings
   customers/
     customer1/
       _defaults.yaml
-      aws/{_defaults.yaml,staging.yaml}
-      azure/{_defaults.yaml,staging.yaml.example}
+      aws/{_defaults.yaml,staging.yaml,staging-kubemarine.yaml.example}
+      azure/{_defaults.yaml,staging.yaml,staging.yaml.example,staging-kubemarine.yaml.example}
       gcp/{_defaults.yaml,staging.yaml.example}
     customer2/
       _defaults.yaml
       aws/{_defaults.yaml,staging.yaml}
 workflows/
-  customers/customer1/staging-terraform.yaml
+  customers/customer1/                   # managed staging and readiness examples
+  customers/customer1/kubemarine/{aws,azure}.yaml
   customers/customer2/aws.yaml
   {azure,gcp,helmfile}.yaml
-local/{compose.yml,settings.example.json,settings.json,scripts/,floci-data/}
-.local-runtime/
-docs/{architecture.md,local-development.md,deployment.md}
+bundle/                                   # offline artifact manifest and scripts
+secrets/                                  # SOPS instructions and encrypted stack secrets
+Dockerfile                                # Linux tools image
+local/
+  {compose.yml,compose.azure.yml,settings.example.json}
+  scripts/                                # Floci and managed access
+  lab.sh                                  # Kubemarine operator tasks
+docs/
 ```
 
-Local settings, `.local-runtime`, Floci data, and Terraform state are excluded from Git.
+Local settings, runtime files, Floci data, and Terraform state are excluded from Git.
 Provider lock files remain in the repository.
 
 ## File discovery and stack names
@@ -92,7 +94,6 @@ directory nesting does not create inheritance automatically.
 
 The stack name combines `tenant`, `cloud`, and `stage`, for example `customer1-aws-staging`.
 The migrated AWS `environment` remains `customer1-staging`: this identifies resources, rather than the Atmos stack.
-All ten Terraform modules declare `cloud` as a string context input.
 The implementation is selected by `metadata.component`, not by `cloud` alone.
 
 ## Imports and overrides
@@ -122,7 +123,7 @@ no customer2 destroy workflow is currently defined.
 ### Inheritance versus execution dependencies
 
 - `import` loads and merges YAML configuration. It does not execute Terraform or Helmfile.
-- `metadata.inherits` is Atmos component configuration inheritance. Current stacks use catalog imports for shared settings.
+- `metadata.inherits` is Atmos component configuration inheritance. Kubemarine VM groups inherit settings from an abstract VM component.
 - `metadata.component: aws/network` maps a logical component to its implementation directory.
 - `!terraform.state network subnet_ids` reads an input dependency from network state. It does not create the network automatically.
 - Workflow `steps` define execution order. Calling another workflow executes its steps rather than inheriting its YAML.
@@ -180,6 +181,20 @@ Matching component names do not imply identical cloud capabilities. See each mod
 AWS catalogs use `!terraform.state`: Kubernetes reads network subnet_ids, Nexus reads vpc_id and `.subnet_ids.a`,
 and ALB reads the VPC and all subnets. Therefore, network is created first and deleted last.
 Access preparation follows Kubernetes; applications follow access; ALB follows applications.
+
+## Kubemarine stack dependencies
+
+The AWS and Azure VM templates use the stage `staging-kubemarine`. Each imports its customer
+and cloud defaults, the cloud network, the shared application catalogs, and the
+[Kubemarine catalog](../stacks/catalog/kubemarine/).
+
+| Catalog file | What it supplies |
+|---|---|
+| `aws-vms.yaml` or `azure-vms.yaml` | Maps `jump-host`, `nexus`, and `vms` to the cloud VM module. The groups consume network outputs and have separate state. The workflow applies them sequentially because they share a module working directory. |
+| `install.yaml` | Passes VM outputs to the installer. Terraform generates the inventory and runs Kubemarine on the operator machine. Kubemarine connects to the nodes through the jump host. |
+| `offline.yaml` | Reads the private Nexus address from Terraform state and the chart versions from the bundle manifest. Supplies the repository URL and SOCKS proxy to the shared Helmfile components. |
+
+See the [VM installation guide](vm-installation.md) for deployment, access, and deletion commands.
 
 ## Helmfile and stack values
 

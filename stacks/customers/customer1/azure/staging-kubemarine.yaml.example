@@ -1,0 +1,27 @@
+import:
+  - customers/customer1/azure/_defaults
+  - catalog/azure/network
+  - catalog/kubemarine/azure-vms
+  - catalog/kubemarine/install
+  - catalog/kubemarine/offline
+  - catalog/helmfile/argocd
+  - catalog/helmfile/istio
+  - catalog/helmfile/kiali
+  - catalog/helmfile/minio
+  - catalog/helmfile/headlamp
+vars:
+  stage: staging-kubemarine
+  environment: customer1-azure-staging-kubemarine
+env:
+  KUBECONFIG: ../../../.local-runtime/kubeconfig-customer1-azure-staging-kubemarine.yaml
+components:
+  terraform:
+    network:
+      vars:
+        vpc_cidr: 10.60.0.0/16
+        subnets:
+          public: { cidr_block: 10.60.0.0/24 }
+          kubernetes: { cidr_block: 10.60.1.0/24, public: false }
+    jump-host:
+      vars:
+        allowed_cidrs: ["203.0.113.10/32"] # Replace with the operator CIDR.

@@ -48,8 +48,9 @@ resource "aws_route_table" "public" {
   }
 }
 
+# Subnets with public = false get no Internet route: an isolated installation reaches only the VPC.
 resource "aws_route_table_association" "public" {
-  for_each = aws_subnet.main
+  for_each = { for key, subnet in aws_subnet.main : key => subnet if var.subnets[key].public }
 
   subnet_id      = each.value.id
   route_table_id = aws_route_table.public.id

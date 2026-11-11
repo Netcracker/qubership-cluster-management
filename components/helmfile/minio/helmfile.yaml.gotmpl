@@ -1,6 +1,6 @@
 repositories:
   - name: minio
-    url: https://charts.min.io/
+    url: {{ .Values | get "nexus_charts" "https://charts.min.io/" | quote }}
 helmDefaults:
   wait: true
   timeout: 600

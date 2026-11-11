@@ -1,0 +1,25 @@
+helmfile:
+  vars:
+    # Atmos drops a string literal that starts the expression ('"http://" + ...' yields no scheme): start with a path.
+    nexus_charts: !terraform.state nexus '.vms[0].internal_address | "http://" + . + ":8081/repository/bundle/charts"'
+  env:
+    HTTP_PROXY: socks5://127.0.0.1:1080
+    HTTPS_PROXY: socks5://127.0.0.1:1080
+
+components:
+  helmfile:
+    argocd:
+      vars:
+        chart_version: !include bundle/manifest.yaml .charts.argocd.version
+    istio:
+      vars:
+        chart_version: !include bundle/manifest.yaml .charts.istiod.version
+    kiali:
+      vars:
+        chart_version: !include bundle/manifest.yaml .charts.kiali.version
+    minio:
+      vars:
+        chart_version: !include bundle/manifest.yaml .charts.minio.version
+    headlamp:
+      vars:
+        chart_version: !include bundle/manifest.yaml .charts.headlamp.version

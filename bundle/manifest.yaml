@@ -1,0 +1,68 @@
+# Everything an isolated (VM) installation takes from Nexus: versions and original sources in one place.
+# bundle/build.sh downloads it (needs Internet); bundle/load.sh uploads the result into Nexus.
+# Stack catalogs read chart versions and repositories from here with !include.
+
+nexus:
+  version: 3.97.1-02
+  source: https://download.sonatype.com/nexus/3/nexus-3.97.1-02-linux-x86_64.tar.gz
+
+# Node packages: the closure of their dependencies is downloaded in a clean container of the node OS release
+# and served as a flat apt repository. Kubemarine 0.55 needs containerd 2.2.*, which Ubuntu 24.04 ships.
+os:
+  image: ubuntu:24.04
+  packages: [containerd, conntrack, iptables, openssl, curl, unzip, kmod, auditd, haproxy, keepalived]
+
+# Kubemarine 0.55.0, Kubernetes v1.34.2 (its default). Regenerate when either version changes:
+# versions are in kubemarine/resources/configurations/compatibility/internal/*.yaml of the Kubemarine package.
+kubemarine:
+  version: 0.55.0
+  kubernetes_version: v1.34.2
+
+# Kubemarine thirdparties: path under files/ in Nexus <- original URL (Kubemarine checks their sha1).
+files:
+  kubernetes/kubeadm/v1.34.2/bin/linux/amd64/kubeadm: https://dl.k8s.io/v1.34.2/bin/linux/amd64/kubeadm
+  kubernetes/kubelet/v1.34.2/bin/linux/amd64/kubelet: https://dl.k8s.io/v1.34.2/bin/linux/amd64/kubelet
+  kubernetes/kubectl/v1.34.2/bin/linux/amd64/kubectl: https://dl.k8s.io/v1.34.2/bin/linux/amd64/kubectl
+  projectcalico/calico/v3.32.0/calicoctl-linux-amd64: https://github.com/projectcalico/calico/releases/download/v3.32.0/calicoctl-linux-amd64
+  kubernetes-sigs/cri-tools/v1.34.0/crictl-v1.34.0-linux-amd64.tar.gz: https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.34.0/crictl-v1.34.0-linux-amd64.tar.gz
+  etcd-io/etcd/v3.6.5/etcd-v3.6.5-linux-amd64.tar.gz: https://github.com/etcd-io/etcd/releases/download/v3.6.5/etcd-v3.6.5-linux-amd64.tar.gz
+
+# Kubemarine images: path in Nexus WITHOUT a registry (Kubemarine prefixes registry.mirror_registry) <- source.
+images:
+  kube-apiserver:v1.34.2: registry.k8s.io/kube-apiserver:v1.34.2
+  kube-controller-manager:v1.34.2: registry.k8s.io/kube-controller-manager:v1.34.2
+  kube-scheduler:v1.34.2: registry.k8s.io/kube-scheduler:v1.34.2
+  kube-proxy:v1.34.2: registry.k8s.io/kube-proxy:v1.34.2
+  pause:3.10.1: registry.k8s.io/pause:3.10.1
+  etcd:3.6.5-0: registry.k8s.io/etcd:3.6.5-0
+  coredns/coredns:v1.12.1: registry.k8s.io/coredns/coredns:v1.12.1
+  calico/typha:v3.32.0: quay.io/calico/typha:v3.32.0
+  calico/cni:v3.32.0: quay.io/calico/cni:v3.32.0
+  calico/node:v3.32.0: quay.io/calico/node:v3.32.0
+  calico/kube-controllers:v3.32.0: quay.io/calico/kube-controllers:v3.32.0
+  calico/pod2daemon-flexvol:v3.32.0: quay.io/calico/pod2daemon-flexvol:v3.32.0
+  netcracker/ingress-nginx/controller:v1.16.0: ghcr.io/netcracker/ingress-nginx/controller:v1.16.0
+  netcracker/ingress-nginx/kube-webhook-certgen:v1.6.9: ghcr.io/netcracker/ingress-nginx/kube-webhook-certgen:v1.6.9
+
+# Helm charts: served from Nexus as one Helm repository; catalogs/helmfile read version and repository from here.
+charts:
+  argocd: {chart: argo-cd, version: 10.10.3, repository: https://argoproj.github.io/argo-helm}
+  istio-base: {chart: base, version: 1.30.6, repository: https://istio-release.storage.googleapis.com/charts}
+  istiod: {chart: istiod, version: 1.30.6, repository: https://istio-release.storage.googleapis.com/charts}
+  kiali: {chart: kiali-operator, version: 2.33.0, repository: https://kiali.org/helm-charts}
+  minio: {chart: minio, version: 5.4.0, repository: https://charts.min.io/}
+  headlamp: {chart: headlamp, version: 0.46.0, repository: https://kubernetes-sigs.github.io/headlamp/}
+
+# Application images, stored in Nexus under the same name (registry included); containerd on the nodes mirrors
+# every registry named here to Nexus. Includes images the charts pull at run time (Istio sidecar, Kiali server).
+app_images:
+  - quay.io/argoproj/argocd:v3.5.5
+  - ghcr.io/dexidp/dex:v2.46.0
+  - ecr-public.aws.com/docker/library/redis:8.6.4-alpine
+  - registry.istio.io/release/pilot:1.30.6
+  - registry.istio.io/release/proxyv2:1.30.6
+  - docker.io/library/busybox:1.28
+  - quay.io/kiali/kiali-operator:v2.33.0
+  - quay.io/kiali/kiali:v2.33.0
+  - docker.io/pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+  - ghcr.io/headlamp-k8s/headlamp:v0.46.0

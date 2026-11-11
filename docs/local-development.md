@@ -1,8 +1,10 @@
 # Local development
 
+This guide covers the managed Floci lab. See [VM installation](vm-installation.md) for the Kubemarine operator scripts.
+
 ## Prerequisites
 
-For a fresh machine, follow [First run on Windows](getting-started.md) first. It includes installation links,
+For a fresh machine, follow [First run with Floci](getting-started.md) first. It includes installation links,
 PATH setup, restricted-network provider downloads, proxy/NO_PROXY, and the full first-run sequence for AWS/Azure.
 This reference describes the AWS scripts and recovery in more detail.
 
@@ -173,21 +175,11 @@ pwsh -NoProfile -File ./local/scripts/Test-Project.ps1 -Initialize -RenderHelmfi
 Stack selects the configuration for Helmfile rendering, defaulting to customer1-aws-staging.
 Terraform validation still covers all modules. Passing these checks does not verify cloud APIs or application runtime health.
 
-## Starting and deploying
+## Running the Floci lab
 
-```powershell
-& ./local/scripts/Start-Local.ps1
-```
-
-Deploy customer1 with Terraform-managed Nexus readiness:
-
-```powershell
-atmos workflow deploy-staging -f customers/customer1/staging-terraform
-```
-
-Network, Kubernetes, and Prepare run sequentially; Nexus and applications/ALB then run concurrently.
-Nexus VM creation, endpoint discovery, and HTTP readiness all happen inside one Terraform apply.
-Customer1 Terraform apply/destroy use -auto-approve. The main workflow waits for both branches and fails if either fails.
+For the AWS and Azure startup, deployment, access checks, and shutdown commands, use
+[First run with Floci](getting-started.md#6-start-and-deploy-aws-customer1).
+See [Workflows and readiness](architecture.md#workflows-and-readiness) for the AWS deployment and deletion order.
 
 Customer2 has a separate sequential deployment with Terraform confirmation:
 
@@ -197,42 +189,13 @@ atmos workflow deploy-staging -f customers/customer2/aws
 
 It excludes Nexus/ALB and currently has no destroy workflow.
 
-## Checking access
-
-```powershell
-$env:NO_PROXY = 'localhost,127.0.0.1,::1,floci'
-kubectl --kubeconfig ./.local-runtime/kubeconfig-customer1-aws-staging.yaml get nodes
-kubectl --kubeconfig ./.local-runtime/kubeconfig-customer1-aws-staging.yaml get pods -A
-```
+## AWS application endpoints
 
 Floci UI: http://127.0.0.1:4500. Configured ALB routes serve http://argocd.localhost,
 http://kiali.localhost, http://minio.localhost, and http://headlamp.localhost.
 Nexus uses a dynamic host port discovered by Terraform; do not hardcode 30000.
 Its writable status endpoint returns 200 when ready. MinIO uses persistence.enabled=false;
 data is not expected to survive pod replacement.
-
-## Deleting and stopping
-
-Delete Nexus and the platform concurrently, then remove the network:
-
-```powershell
-atmos workflow destroy-staging -f customers/customer1/staging-terraform
-```
-
-```text
-parallel
-├─ destroy Nexus
-└─ destroy ALB → Kiali CR → Headlamp → MinIO → Kiali → Argo CD → Istio → Kubernetes
-after both branches succeed → destroy network
-```
-
-With wait_all, the other branch can finish after a failure, but network deletion is blocked.
-Floci must be running and Kubernetes must remain accessible until Helm release deletion completes.
-Stop the environment after a successful destroy:
-
-```powershell
-pwsh -NoProfile -File ./local/scripts/Stop-Local.ps1
-```
 
 ## Nexus readiness details
 
