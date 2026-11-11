@@ -128,9 +128,16 @@ Where the decrypting key comes from is chosen at run time, without code changes:
 | Variable | `SOPS_AGE_KEY=AGE-SECRET-KEY-…` | CI secret |
 | Cloud secret manager | `SOPS_AGE_KEY_CMD='aws secretsmanager get-secret-value --secret-id sops-age --query SecretString --output text'` (or `az keyvault secret show … -o tsv`, `gcloud secrets versions access latest --secret …`) | Cloud runners |
 | Cloud KMS | add `kms` / `azure_keyvault` / `gcp_kms` to `.sops.yaml`; the runner's cloud identity decrypts | No key material at all |
+| PGP | add the fingerprint to `pgp` in `.sops.yaml`; sops decrypts with the secret key in the `gpg` keyring | Operators who already have a PGP key |
 
 A new operator: `age-keygen -o local/age.key`, send the printed public key to someone who can already decrypt; they
 add it to `.sops.yaml` and run `sops updatekeys`.
+
+With PGP instead: send the public key (`gpg --armor --export <fingerprint>`) to someone who can already decrypt; they
+add the fingerprint to `pgp:` in `.sops.yaml` (comma-separated) and run `sops updatekeys`. The tools container has its own
+keyring, so import your secret key into it once per container: `gpg --import <secret-key.asc>`. If the key has a
+passphrase, run `export GPG_TTY=$(tty)` first so gpg can prompt for it. In CI, use a key without a passphrase and import
+it from a secret: `gpg --batch --import <<<"$SOPS_PGP_KEY"`.
 
 ## 3. Create the stack
 

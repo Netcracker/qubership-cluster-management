@@ -45,7 +45,9 @@ this file holds only what the code doesn't show (why, what was decided, what's n
   `sops exec-env secrets/<stack>.yaml '<atmos ...>'` — secrets end up neither in tfvars nor in state.
   age key source: `SOPS_AGE_KEY_FILE` (default `local/age.key`, gitignored), `SOPS_AGE_KEY` (CI),
   `SOPS_AGE_KEY_CMD` (a command that reads the key from a cloud secret manager); plus KMS keys in `.sops.yaml`.
-  age instead of the MoM's OpenPGP (PGP can be added as a second key).
+  age is the default; PGP (from the MoM) works as an extra key: `gnupg` in the tools image, fingerprint in `pgp:`,
+  secret key imported into the container's keyring (2026-11-11). Verified in the tools image: a file encrypted for
+  age + PGP decrypts with either alone; CI-style `gpg --batch --import` from a variable works. Passphrase prompt untested.
 - Operator access to the private network: a SOCKS tunnel through the jump host (`local/lab.sh tunnel`). Helmfile gets
   `HTTP(S)_PROXY=socks5://127.0.0.1:<port>`, kubeconfig gets `proxy-url`, server = the control plane's internal IP.
 - Nexus: installed over SSH from the bundle (tarball via ProxyJump), `nexus.security.randompassword=false`, then the

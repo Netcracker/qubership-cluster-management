@@ -11,4 +11,4 @@ creation_rules:
     # kms: arn:aws:kms:<region>:<account>:key/<id>
     # azure_keyvault: https://<vault>.vault.azure.net/keys/<name>/<version>
     # gcp_kms: projects/<project>/locations/<location>/keyRings/<ring>/cryptoKeys/<key>
-    # pgp: <fingerprint>
+    # pgp: <fingerprint>   (comma-separated; the secret key must be in the gpg keyring, docs/vm-installation.md)
