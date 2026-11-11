@@ -1,0 +1,31 @@
+components:
+  helmfile:
+    traefik:
+      vars:
+        chart_version: 42.3.0
+        values:
+          service:
+            spec:
+              type: NodePort
+            
+
+          ports:
+            web:
+              nodePort: 30084
+            websecure:
+              nodePort: 30085
+
+          providers:
+            kubernetesIngress:
+              enabled: true
+              publishedService:
+                enabled: false
+
+          env:
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+
+          additionalArguments:
+            - "--providers.kubernetesingress.ingressendpoint.ip=$(NODE_IP)"

@@ -1,0 +1,5 @@
+components:
+  terraform:
+    nginx:
+      metadata:
+        component: kubernetes/nginx

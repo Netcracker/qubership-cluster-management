@@ -9,6 +9,11 @@ import:
   - catalog/helmfile/kiali
   - catalog/helmfile/minio
   - catalog/helmfile/headlamp
+  - catalog/kubernetes/nginx
+  - catalog/helmfile/traefik
+  - catalog/kubernetes/ingress-wait
+  - catalog/kubernetes/job-wait
+  - catalog/kubernetes/manifest-wait
 vars:
   stage: staging
   environment: customer1-staging
@@ -39,6 +44,26 @@ components:
           b:
             cidr_block: 10.40.2.0/24
             availability_zone: us-east-1b
+    nginx:
+      metadata:
+        terraform_workspace: customer1-aws-staging
+      vars:
+        kubeconfig_path: ../../../../.local-runtime/kubeconfig-customer1-aws-staging.yaml  
+    ingress-wait:
+      metadata:
+        terraform_workspace: customer1-aws-staging
+      vars:
+        kubeconfig_path: ../../../../.local-runtime/kubeconfig-customer1-aws-staging.yaml
+    job-wait:
+      metadata:
+        terraform_workspace: customer1-aws-staging
+      vars:
+        kubeconfig_path: ../../../../.local-runtime/kubeconfig-customer1-aws-staging.yaml
+    manifest-wait:
+      metadata:
+        terraform_workspace: customer1-aws-staging
+      vars:
+        kubeconfig_path: ../../../../.local-runtime/kubeconfig-customer1-aws-staging.yaml
   helmfile:
     argocd:
       vars:

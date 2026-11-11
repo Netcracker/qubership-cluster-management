@@ -120,14 +120,14 @@ and Terraform state are excluded from Git.
 
 | Stack | Current scope | Workflow file |
 |---|---|---|
-| `customer1-aws-staging` | Local Floci: network, Kubernetes, Nexus, five application components, ALB | [customer1/aws.yaml](workflows/customers/customer1/aws.yaml) |
+| `customer1-aws-staging` | Local Floci: network, Kubernetes, Nexus, five application components, ALB | [customer1/staging-terraform.yaml](workflows/customers/customer1/staging-terraform.yaml) |
 | `customer2-aws-staging` | Separate local AWS stack: network, Kubernetes, five application components | [customer2/aws.yaml](workflows/customers/customer2/aws.yaml) |
 | `customer1-azure-staging` | Local Floci Azure: network, Kubernetes, five application components, TCP load balancer configuration | [customer1/azure.yaml](workflows/customers/customer1/azure.yaml) |
 | GCP | Terraform implementations and inactive stack template; deployment not verified | [gcp.yaml](workflows/gcp.yaml) |
 
 Customer1 AWS creates network and Kubernetes, prepares access, then runs Nexus/readiness and applications/ALB
-in parallel. `deploy-staging` checks Nexus through a hook; `deploy-staging-no-hook` uses an explicit readiness step.
-Both operate on the same resources.
+in parallel. Nexus uses one Terraform apply: VM creation, local endpoint discovery through the external
+provider, and application readiness through the HTTP provider. There are no Atmos readiness hooks or HTTP steps.
 
 Azure runs network → Kubernetes → access preparation → applications → load balancer sequentially.
 Its Helm releases and application HTTP responses have been checked locally.
@@ -154,11 +154,10 @@ See [local development](docs/local-development.md) for AWS settings and script d
 ### AWS: customer1
 
 ```powershell
-pwsh -NoProfile -File ./local/scripts/Start-Local.ps1
-atmos workflow deploy-staging-no-hook -f customers/customer1/aws
+& ./local/scripts/Start-Local.ps1
+atmos workflow deploy-staging -f customers/customer1/staging-terraform
 ```
 
-Use `deploy-staging` instead for hook-based Nexus readiness. Choose one deployment variant per run.
 Start only starts the emulator services; deployment creates customer resources.
 
 ### Azure: start and inspect
@@ -190,13 +189,13 @@ These endpoints have returned HTTP 200 through port forwarding.
 
 ### Delete resources before stopping emulators
 
-Customer1 AWS supports sequential `destroy-staging` and parallel `destroy-staging-parallel`.
+Customer1 AWS uses parallel `destroy-staging`, followed by network deletion.
 Azure has sequential `destroy-staging`. Customer1 Terraform apply/destroy steps use `-auto-approve`.
 
 AWS:
 
 ```powershell
-atmos workflow destroy-staging-parallel -f customers/customer1/aws
+atmos workflow destroy-staging -f customers/customer1/staging-terraform
 if ($LASTEXITCODE -ne 0) { throw 'Deletion failed. Floci has been left running.' }
 pwsh -NoProfile -File ./local/scripts/Stop-Local.ps1
 ```

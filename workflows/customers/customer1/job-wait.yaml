@@ -1,0 +1,30 @@
+workflows:
+  deploy:
+    description: Create infrastructure and wait for Job completion
+    stack: customer1-aws-staging
+    steps:
+      - name: network
+        command: terraform apply network -input=false -auto-approve
+
+      - name: kubernetes
+        command: terraform apply kubernetes -input=false -auto-approve
+
+      - name: access
+        type: shell
+        command: pwsh -NoProfile -File ./local/scripts/Prepare-Cluster.ps1 -Stack customer1-aws-staging
+
+      - name: job
+        command: terraform apply job-wait -input=false -auto-approve
+
+  destroy:
+    description: Remove Job, namespace and infrastructure
+    stack: customer1-aws-staging
+    steps:
+      - name: job
+        command: terraform destroy job-wait -input=false -auto-approve
+
+      - name: kubernetes
+        command: terraform destroy kubernetes -input=false -auto-approve
+
+      - name: network
+        command: terraform destroy network -input=false -auto-approve

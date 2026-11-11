@@ -1,0 +1,30 @@
+workflows:
+  deploy:
+    description: Deploy infrastructure, wait for Nexus, then install platform
+    stack: customer1-aws-staging
+    steps:
+      - name: network
+        command: terraform apply network -input=false -auto-approve
+
+      - name: kubernetes
+        command: terraform apply kubernetes -input=false -auto-approve
+
+      - name: access
+        type: shell
+        command: pwsh -NoProfile -File ./local/scripts/Prepare-Cluster.ps1 -Stack customer1-aws-staging
+
+      - name: nexus
+        type: atmos
+        command: workflow deploy-nexus -f customers/customer1/staging-terraform
+
+      # - name: platform
+      #   type: atmos
+      #   command: workflow deploy-platform -f customers/customer1/staging-terraform
+
+  destroy:
+    description: Destroy the shared customer1 staging resources
+    stack: customer1-aws-staging
+    steps:
+      - name: destroy
+        type: atmos
+        command: workflow destroy-staging -f customers/customer1/staging-terraform

@@ -56,7 +56,7 @@ Windows PowerShell 5.1 (`powershell.exe`) does not satisfy scripts requiring Pow
 ## 2. Install the deployment tools
 
 These versions were observed on the development machine on 2026-10-28. They are a reproducibility baseline;
-arbitrary newer versions have not been tested with these hooks and parallel workflows.
+arbitrary newer versions have not been tested with these Terraform providers and parallel workflows.
 
 | Tool | Tested version | Purpose | Windows x64 download |
 |---|---|---|---|
@@ -275,28 +275,27 @@ Kubeconfigs, state, and emulator data are excluded from Git and are created late
 ## 6. Start and deploy AWS customer1
 
 ```powershell
-pwsh -NoProfile -File ./local/scripts/Start-Local.ps1
+& ./local/scripts/Start-Local.ps1
 if ($LASTEXITCODE -ne 0) { throw 'AWS emulator startup failed.' }
-atmos workflow deploy-staging-no-hook -f customers/customer1/aws
+atmos workflow deploy-staging -f customers/customer1/staging-terraform
 if ($LASTEXITCODE -ne 0) { throw 'Deployment failed; inspect the reported workflow step.' }
 ```
 
 Start creates the external network if absent, starts Floci/UI, and waits for emulator health.
 It does not deploy or wait for Argo CD/Nexus. The workflow creates infrastructure, prepares Kubernetes access,
 then runs Nexus/readiness and applications/ALB in parallel. Terraform uses -auto-approve.
-Use deploy-staging instead for hook-based Nexus readiness; choose one variant per run.
+Nexus readiness is checked by the Terraform HTTP provider inside the same apply that creates its VM.
 First deployment includes downloads and Nexus installation, so completion can take time.
 
 ```powershell
 kubectl --kubeconfig ./.local-runtime/kubeconfig-customer1-aws-staging.yaml get nodes
 kubectl --kubeconfig ./.local-runtime/kubeconfig-customer1-aws-staging.yaml get pods -A
 helm --kubeconfig ./.local-runtime/kubeconfig-customer1-aws-staging.yaml list -A
-pwsh -NoProfile -File ./local/scripts/Get-NexusEndpoint.ps1 -Stack customer1-aws-staging
 ```
 
 Expected: Ready node, ready application pods, deployed Helm releases. A completed MinIO bucket Job is normal.
 Open http://localhost:4500 for Floci UI and http://argocd.localhost, http://kiali.localhost,
-http://minio.localhost, http://headlamp.localhost for applications. Nexus uses the script's dynamic URL.
+http://minio.localhost, http://headlamp.localhost for applications. Nexus uses the dynamically published host port discovered inside Terraform; see the local development readiness section.
 Application login/token requirements still apply.
 
 ## 7. Start and deploy Azure customer1
@@ -355,7 +354,7 @@ GCP is an inactive template; no unverified GCP launch sequence is provided here.
 Keep Docker and the emulator running until deletion succeeds. AWS customer1:
 
 ```powershell
-atmos workflow destroy-staging-parallel -f customers/customer1/aws
+atmos workflow destroy-staging -f customers/customer1/staging-terraform
 if ($LASTEXITCODE -ne 0) { throw 'Deletion failed. Keep Floci running.' }
 pwsh -NoProfile -File ./local/scripts/Stop-Local.ps1
 ```

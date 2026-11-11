@@ -1,0 +1,16 @@
+repositories:
+  - name: traefik
+    url: https://traefik.github.io/charts
+
+helmDefaults:
+  wait: true
+  timeout: 600
+
+releases:
+  - name: traefik
+    namespace: traefik
+    createNamespace: true
+    chart: traefik/traefik
+    version: {{ .Values.chart_version | quote }}
+    values:
+      - values.yaml.gotmpl

@@ -1,0 +1,5 @@
+components:
+  terraform:
+    job-wait:
+      metadata:
+        component: kubernetes/job-wait
