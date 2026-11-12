@@ -17,7 +17,7 @@ ARG CRANE_VERSION=0.22.1
 ARG YQ_VERSION=4.53.6
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates curl git jq unzip less openssh-client python3-venv \
+ && apt-get install -y --no-install-recommends ca-certificates curl git jq unzip less openssh-client python3-venv gnupg \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=docker /usr/local/bin/docker /usr/local/bin/docker
