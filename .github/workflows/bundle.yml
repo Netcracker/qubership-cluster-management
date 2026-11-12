@@ -58,5 +58,7 @@ jobs:
           \`\`\`
 
           Then load it into Nexus: docs/vm-installation.md.
+
           EOF
+          docker run --rm -v "$PWD:$PWD" -w "$PWD" tools bash bundle/release-notes.sh >> notes.md
           gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "Bundle $TAG" --notes-file notes.md

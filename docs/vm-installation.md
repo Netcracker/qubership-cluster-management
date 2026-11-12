@@ -384,13 +384,3 @@ the resource group is gone (`az group list -o table`) and delete the service pri
 | Azure `SkuNotAvailable` | The VM size has no capacity in the region: choose another `region` or override `instance_type` in the stack. |
 | Azure `AuthorizationFailed` | The service principal lacks `Contributor`, or the `ARM_*` values are wrong. |
 | Azure `MissingSubscriptionRegistration` | Register the resource providers and rerun. |
-
-## Verification status
-
-- Stack validation and workflow dry-runs have been checked with this repository layout.
-- Locally checked: Terraform module tests, the generated `cluster.yaml` against the Kubemarine schema, SOPS key
-  sources, and bundle build and upload into a real Nexus 3.97.1.
-- The Azure flow was deployed in a real subscription with the earlier stack layout. A full run with the
-  `*-staging-kubemarine` stacks, and any run on AWS or GCP, is still unverified.
-- `bundle/load.sh` accepts the [Nexus Community Edition EULA](https://links.sonatype.com/products/nxrm/ce-eula) on the
-  Nexus instance it configures.
