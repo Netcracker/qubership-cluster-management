@@ -1,0 +1,64 @@
+name: Bundle
+
+# Builds the Nexus bundle (bundle/manifest.yaml) and publishes it as a GitHub release.
+# A release asset must be under 2 GiB, so the bundle is one tar split into 1900 MiB parts.
+# Start it by pushing a tag bundle-<version> or from the Actions tab with a new tag name.
+
+on:
+  push:
+    tags: ["bundle-*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create, e.g. bundle-2026.11.04"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # The bundle, its tar parts and the pulled images need more than the runner's default free space.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - name: Build tools image
+        run: docker build -t tools .
+
+      - name: Build bundle
+        run: docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD:$PWD" -w "$PWD" tools bash bundle/build.sh
+
+      - name: Pack
+        run: |
+          mkdir dist
+          tar -C .local-runtime -cf - bundle | split -b 1900M -d - dist/qcm-bundle.tar.part-
+          cp bundle/manifest.yaml dist/manifest.yaml
+          (cd dist && sha256sum -- * > SHA256SUMS)
+          ls -lh dist
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<EOF
+          Nexus bundle built from \`bundle/manifest.yaml\` at ${GITHUB_SHA::7}. Download and unpack:
+
+          \`\`\`bash
+          gh release download $TAG -R $GITHUB_REPOSITORY -p 'qcm-bundle.tar.part-*' -p SHA256SUMS -D bundle-download
+          (cd bundle-download && sha256sum -c --ignore-missing SHA256SUMS)
+          cat bundle-download/qcm-bundle.tar.part-* | tar -x -C .local-runtime
+          \`\`\`
+
+          Then load it into Nexus: docs/vm-installation.md.
+
+          EOF
+          docker run --rm -v "$PWD:$PWD" -w "$PWD" tools bash bundle/release-notes.sh >> notes.md
+          gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "Bundle $TAG" --notes-file notes.md

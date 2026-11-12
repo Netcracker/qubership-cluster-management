@@ -1,5 +1,7 @@
 # Architecture diagrams
 
+These pages cover the managed Floci deployments. For the VM-based path, see [Kubemarine stack dependencies](../architecture.md#kubemarine-stack-dependencies).
+
 Open [atmos-local-demo.drawio](atmos-local-demo.drawio) in diagrams.net / draw.io using **File → Open from → Device**.
 The document contains five editable pages. Nodes, labels, and connectors are editable; the pages are not flattened images.
 The PNG files provide previews without a diagram editor.

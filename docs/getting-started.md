@@ -1,11 +1,11 @@
-# First run on Windows
+# First run with Floci on Windows
 
 This guide explains what to install after cloning, which scripts to run, and how to deploy.
 Docker Desktop runs Floci and Kubernetes nodes. Atmos, Terraform, Helmfile, and preparation scripts run on Windows;
 Docker Desktop alone is not enough. There is no all-in-one project installer or operator-tools image yet.
 
 The documented host is Windows x64 (Intel/AMD), PowerShell 7, and Docker Desktop with Linux containers.
-Azure startup uses the Windows certificate store; Linux/macOS startup is not validated.
+Azure startup uses the Windows certificate store. For the Bash-based Kubemarine workflow on Windows or Linux, see [VM installation](vm-installation.md).
 Cloud accounts, Azure CLI, gcloud, Java, Python, and a separate Kubernetes installation are not needed for these local labs.
 
 ## The complete sequence
@@ -346,7 +346,7 @@ kubectl --kubeconfig ./.local-runtime/kubeconfig-customer1-azure-staging.yaml -n
 ```
 
 Leave these running and open http://localhost:18080 and http://localhost:18081; both returned HTTP 200 in validation.
-Ctrl+C ends that port-forward, not the application. See [Azure limitations](../README.md#azure-emulator-limitations).
+Ctrl+C ends that port-forward, not the application.
 GCP is an inactive template; no unverified GCP launch sequence is provided here.
 
 ## 8. Destroy resources, then stop
