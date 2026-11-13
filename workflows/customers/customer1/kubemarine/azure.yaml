@@ -1,5 +1,5 @@
-# Isolated VM installation (docs/vm-installation.md). Every workflow needs the stack secrets:
-#   local/lab.sh with-secrets customer1-azure-staging-kubemarine atmos workflow deploy-vm -f customers/customer1/kubemarine/azure
+# Isolated VM installation (docs/vm-installation.md). Every workflow needs the stack secrets (run = with-secrets + logs):
+#   local/lab.sh run customer1-azure-staging-kubemarine atmos workflow deploy-vm -f customers/customer1/kubemarine/azure
 workflows:
   deploy-vm:
     description: 'Deploy customer1 Azure staging (Kubemarine on VMs): network, jump host, nodes, Nexus, Kubemarine, apps; closes access at the end'

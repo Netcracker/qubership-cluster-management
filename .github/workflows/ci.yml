@@ -132,15 +132,24 @@ jobs:
             "$IMAGE" sleep infinity
       - name: Start emulator
         run: docker exec tools bash ./local/lab.sh ${{ matrix.start }}
+      # lab.sh run keeps the console output and collects cluster logs into .local-runtime/logs on success or failure.
       - name: Deploy
-        run: docker exec tools atmos workflow ${{ matrix.deploy }} -f ${{ matrix.workflows }}
+        run: docker exec tools bash ./local/lab.sh run ${{ matrix.stack }} atmos workflow ${{ matrix.deploy }} -f ${{ matrix.workflows }}
       - name: Check cluster
         run: |
           docker exec tools kubectl --kubeconfig .local-runtime/kubeconfig-${{ matrix.stack }}.yaml get pods -A
           docker exec tools helm --kubeconfig .local-runtime/kubeconfig-${{ matrix.stack }}.yaml list -A
       - name: Destroy
         if: matrix.destroy != ''
-        run: docker exec tools atmos workflow ${{ matrix.destroy }} -f ${{ matrix.workflows }}
+        run: docker exec tools bash ./local/lab.sh run ${{ matrix.stack }} atmos workflow ${{ matrix.destroy }} -f ${{ matrix.workflows }}
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-${{ matrix.stack }}-attempt${{ github.run_attempt }}
+          path: .local-runtime/logs/*.tar.gz
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Diagnostics
         if: failure()
         run: |

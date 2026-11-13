@@ -282,7 +282,7 @@ Validation prints `All stacks validated successfully`. Dry-run lists the top-lev
 ## 5. Deploy
 
 ```bash
-bash ./local/lab.sh with-secrets "$stack" atmos workflow deploy-vm -f "$workflow"
+bash ./local/lab.sh run "$stack" atmos workflow deploy-vm -f "$workflow"
 ```
 
 Expected durations; most of the time is Kubemarine and the bundle upload:
@@ -304,6 +304,159 @@ the final inventory stays in `.local-runtime/kubemarine/$stack/dump`.
 The workflow ends with `close-access`: the jump host is destroyed, so nothing in the environment accepts connections
 from outside. If a step fails, fix the cause and run the same command again. Applied Terraform components change
 nothing, Kubemarine does not reinstall, and the bundle upload skips what Nexus already has.
+
+### Run logs
+
+`lab.sh run` works like `with-secrets` (it loads `secrets/$stack.yaml` when it exists) and also keeps the logs of the
+run. After the command finishes, with success, failure, or Ctrl-C, it collects everything into one archive and keeps
+the command's exit code:
+
+```text
+.local-runtime/logs/<stack>-<UTC time>-<ok|failed>.tar.gz
+└── <stack>-<UTC time>-<ok|failed>/
+    ├── run/          summary.txt (stack, command, exit code, times, commit), command.txt, console.log,
+    │                 collect.log (what was collected and what was not reachable)
+    ├── config/       stack.yaml: the resolved stack configuration
+    ├── kubemarine/   cluster.yaml and the Kubemarine dump (debug.log, inventories); key files are left out
+    ├── kubernetes/   overview.txt and dump/: cluster state, events, and container logs per namespace
+    ├── nexus/        nexus.log: service status and the Nexus log
+    └── nodes/        <node>.log: containerd and kubelet journal of each node
+```
+
+Each part is optional. `kubernetes/`, `nexus/`, and `nodes/` need the jump host and the tunnel, so they are collected
+when a run fails before `close-access`, or for runs made while access is open. After a successful `deploy-vm` the
+jump host is gone, and the archive holds the console log, configuration, and Kubemarine files.
+
+In CI, the deploy job attaches the archives as the `logs-<stack>-attempt<N>` artifact.
+
+### Upload run logs to cloud storage
+
+Uploading is optional. When `LOGS_UPLOAD_URL` is set, every `lab.sh run` uploads its archive after collecting it.
+The storage is chosen by the form of the URL:
+
+| Storage | `LOGS_UPLOAD_URL` | Credentials |
+|---|---|---|
+| AWS S3 | `s3://<bucket>/<prefix>` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` (and `AWS_SESSION_TOKEN`) with `s3:PutObject` on the prefix |
+| Azure Blob Storage | `https://<account>.blob.core.windows.net/<container>/<prefix>?<SAS>` | The SAS token in the URL, with create and write rights on the container |
+| Google Cloud Storage | `gs://<bucket>/<prefix>` | `LOGS_GCS_HMAC_ACCESS_ID`, `LOGS_GCS_HMAC_SECRET`: an HMAC key of a service account with `roles/storage.objectCreator` |
+
+The prefix is optional; the archive is stored as `<prefix>/<stack>-<UTC time>-<ok|failed>.tar.gz`. A failed upload is
+reported, the run keeps the command's exit code, and the archive stays local.
+
+The archives contain internal addresses and the cluster configuration. Use a private bucket or container, and give the
+uploading identity write rights only. The prepared storage can be shared by many stacks: use a prefix per stack.
+
+The variables are secrets, so store them in `secrets/$stack.yaml`, never in the stack manifest:
+
+```bash
+sops set "secrets/$stack.yaml" '["LOGS_UPLOAD_URL"]' '"<URL>"'
+```
+
+Check the upload with an empty run; it creates a small archive and uploads it:
+
+```bash
+bash ./local/lab.sh run "$stack" true   # ends with "Logs uploaded: ..."
+```
+
+The storage commands below need administrator rights in the cloud account and run with the cloud's own CLI
+(AWS CloudShell, Azure Cloud Shell, and Google Cloud Shell have them). Keep the storage outside the stack's
+resource group or project resources, so `destroy-vm` does not delete the logs. Each example ends with a lifecycle rule
+that deletes archives after 30 days; change or drop it as needed.
+
+#### AWS S3
+
+The upload uses the AWS credentials from `secrets/$stack.yaml`. For an AWS stack these are the deployment credentials,
+so add `s3:PutObject` to that identity. For an Azure stack, create a separate IAM user that can only upload, and add its
+`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` to the secrets.
+
+```bash
+BUCKET=qcm-run-logs-$(aws sts get-caller-identity --query Account --output text)
+REGION=us-east-1
+aws s3 mb "s3://$BUCKET" --region "$REGION"   # new buckets block public access by default
+
+cat > logs-upload-policy.json <<EOF
+{"Version": "2012-10-17", "Statement": [{"Effect": "Allow",
+  "Action": ["s3:PutObject", "s3:AbortMultipartUpload"],
+  "Resource": "arn:aws:s3:::$BUCKET/$stack/*"}]}
+EOF
+# The IAM user whose keys are in secrets/$stack.yaml; for a role, use put-role-policy --role-name.
+aws iam put-user-policy --user-name <IAM user> --policy-name qcm-logs-upload \
+  --policy-document file://logs-upload-policy.json
+
+aws s3api put-bucket-lifecycle-configuration --bucket "$BUCKET" --lifecycle-configuration \
+  '{"Rules":[{"ID":"expire-run-logs","Status":"Enabled","Filter":{"Prefix":""},"Expiration":{"Days":30}}]}'
+
+echo "LOGS_UPLOAD_URL=s3://$BUCKET/$stack"
+```
+
+Also add `AWS_DEFAULT_REGION` with the bucket region to the secrets when the stack secrets have no region.
+S3-compatible storage, such as MinIO, works with `s3://` and `AWS_ENDPOINT_URL_S3=<endpoint>` in the secrets.
+
+#### Azure Blob Storage
+
+The URL carries its own credentials: a container SAS token that can only create and write blobs. The SAS refers to a
+stored access policy, so access can be revoked or extended without changing the URL or the account keys.
+
+```bash
+RG=qcm-run-logs-rg
+LOCATION=northeurope
+ACCOUNT=qcmrunlogs$RANDOM   # 3–24 lowercase letters and digits, unique in Azure
+CONTAINER=run-logs
+
+az group create -n "$RG" -l "$LOCATION"
+az storage account create -n "$ACCOUNT" -g "$RG" -l "$LOCATION" \
+  --sku Standard_LRS --kind StorageV2 --min-tls-version TLS1_2 --allow-blob-public-access false
+az storage container create --account-name "$ACCOUNT" -n "$CONTAINER" --auth-mode key
+
+EXPIRY=$(date -u -d '+180 days' +%Y-%m-%dT%H:%MZ)
+az storage container policy create --account-name "$ACCOUNT" -c "$CONTAINER" \
+  -n logs-upload --permissions cw --expiry "$EXPIRY" --auth-mode key
+SAS=$(az storage container generate-sas --account-name "$ACCOUNT" -n "$CONTAINER" \
+  --policy-name logs-upload --https-only --auth-mode key -o tsv)
+
+az storage account management-policy create --account-name "$ACCOUNT" -g "$RG" --policy \
+  '{"rules":[{"enabled":true,"name":"expire-run-logs","type":"Lifecycle","definition":{"actions":{"baseBlob":{"delete":{"daysAfterModificationGreaterThan":30}}},"filters":{"blobTypes":["blockBlob"],"prefixMatch":["run-logs/"]}}}]}'
+
+echo "LOGS_UPLOAD_URL=https://$ACCOUNT.blob.core.windows.net/$CONTAINER/$stack?$SAS"
+```
+
+When the policy expires, uploads fail with `403`. Extend it with
+`az storage container policy update --account-name "$ACCOUNT" -c "$CONTAINER" -n logs-upload --expiry <date> --auth-mode key`;
+the URL stays the same. Revoke access with `az storage container policy delete` and the same names.
+If the storage account firewall is enabled, allow the operator or CI runner addresses.
+
+#### Google Cloud Storage
+
+The upload goes through the S3-compatible API of Cloud Storage with an HMAC key of a dedicated service account. The
+service account can only create objects in the bucket: it cannot read, list, or overwrite the logs.
+
+```bash
+PROJECT=$(gcloud config get-value project)
+BUCKET=qcm-run-logs-$PROJECT
+SA=qcm-logs-upload@$PROJECT.iam.gserviceaccount.com
+
+gcloud storage buckets create "gs://$BUCKET" --location=europe-north1 \
+  --uniform-bucket-level-access --public-access-prevention
+gcloud iam service-accounts create qcm-logs-upload --display-name="QCM run logs upload"
+gcloud storage buckets add-iam-policy-binding "gs://$BUCKET" \
+  --member="serviceAccount:$SA" --role=roles/storage.objectCreator
+gcloud storage hmac create "$SA"   # prints accessId and secret; the secret is shown only once
+
+echo '{"rule":[{"action":{"type":"Delete"},"condition":{"age":30}}]}' > lifecycle.json
+gcloud storage buckets update "gs://$BUCKET" --lifecycle-file=lifecycle.json
+
+echo "LOGS_UPLOAD_URL=gs://$BUCKET/$stack"
+```
+
+Store all three values:
+
+```bash
+sops set "secrets/$stack.yaml" '["LOGS_UPLOAD_URL"]' '"gs://<bucket>/<stack>"'
+sops set "secrets/$stack.yaml" '["LOGS_GCS_HMAC_ACCESS_ID"]' '"<accessId>"'
+sops set "secrets/$stack.yaml" '["LOGS_GCS_HMAC_SECRET"]' '"<secret>"'
+```
+
+Revoke the key with `gcloud storage hmac update <accessId> --deactivate`, then `gcloud storage hmac delete <accessId>`.
 
 ## 6. Work with the cluster later
 
@@ -329,7 +482,7 @@ Other tasks while access is open:
 
 | Task | Command |
 |---|---|
-| Reapply the apps | `bash ./local/lab.sh with-secrets "$stack" atmos workflow deploy-apps -f "$workflow"` |
+| Reapply the apps | `bash ./local/lab.sh run "$stack" atmos workflow deploy-apps -f "$workflow"` |
 | Reload Nexus after a bundle change | `bash ./local/lab.sh with-secrets "$stack" bash ./local/lab.sh nexus-load "$stack"` |
 | Shell on a private VM | `bash ./local/lab.sh with-secrets "$stack" bash ./local/lab.sh ssh "$stack" <private address>` |
 | Nexus private address | `atmos terraform output nexus -s "$stack"` (`internal_address`) |
@@ -358,7 +511,7 @@ bash ./local/lab.sh with-secrets "$stack" atmos terraform apply kubemarine -s "$
 ## 7. Destroy
 
 ```bash
-bash ./local/lab.sh with-secrets "$stack" atmos workflow destroy-vm -f "$workflow"
+bash ./local/lab.sh run "$stack" atmos workflow destroy-vm -f "$workflow"
 ```
 
 Destroy stops the tunnel and removes the installer state, VMs, Nexus, jump host, and network. Terraform state is local
@@ -369,7 +522,8 @@ the resource group is gone (`az group list -o table`) and delete the service pri
 
 | Symptom | Check |
 |---|---|
-| `No SSH key` from `lab.sh` | The command was not run under `with-secrets`. |
+| Any failed run | The archive from `lab.sh run`: start with `run/console.log`, then `kubemarine/` or `kubernetes/dump/`. |
+| `No SSH key` from `lab.sh` | The command was not run under `with-secrets` or `run`. |
 | SOPS: `no identity matched` or cannot decrypt | Check `SOPS_AGE_KEY_FILE` (or another key source) and the recipients in the encrypted file. |
 | AWS API or registry connection refused | Check the inherited HTTPS proxy from inside the operator shell. |
 | `Timed out waiting for SSH on the jump host` | Your public IP changed: update `allowed_cidrs` and rerun `open-access`. |

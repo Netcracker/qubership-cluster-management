@@ -368,6 +368,121 @@ cmd_prepare_vms() {
     echo "$stack is ready. Kubeconfig: $kubeconfig"
 }
 
+# --- Run logs: one archive per run, collected on success and on failure --------------------------------------
+
+# Runs COMMAND with the stack secrets (when secrets/STACK.yaml exists), then collects logs into
+# .local-runtime/logs/STACK-<UTC time>-<ok|failed>.tar.gz and uploads it when LOGS_UPLOAD_URL is set.
+cmd_run() {
+    local stack=$1; shift; check_stack "$stack"
+    (($#)) || die 'Usage: local/lab.sh run STACK COMMAND...'
+    if [[ -f secrets/$stack.yaml && -z ${QCM_SECRETS_LOADED:-} ]]; then
+        default_age_key
+        exec sops exec-env "secrets/$stack.yaml" "QCM_SECRETS_LOADED=1 bash ./local/lab.sh run $(printf '%q ' "$stack" "$@")"
+    fi
+    local started name dir code status
+    started=$(date -u +%Y%m%d-%H%M%S)
+    dir=$RUNTIME/logs/$stack-$started
+    mkdir -p "$dir/run"
+    printf '%q ' "$@" >"$dir/run/command.txt"
+    # Ctrl-C stops the command, not the log collection.
+    trap 'echo "Interrupted: collecting logs" >&2' INT
+    set +e
+    "$@" 2>&1 | tee "$dir/run/console.log"
+    code=${PIPESTATUS[0]}
+    set -e
+    trap - INT
+    ((code == 0)) && status=ok || status=failed
+    echo "Collecting logs ($status, exit code $code)"
+    collect_logs "$stack" "$dir" "$code" "$started"
+    name=$stack-$started-$status
+    mv "$dir" "$RUNTIME/logs/$name"
+    tar -czf "$RUNTIME/logs/$name.tar.gz" -C "$RUNTIME/logs" "$name"
+    echo "Logs: .local-runtime/logs/$name.tar.gz"
+    upload_logs "$RUNTIME/logs/$name.tar.gz" || echo "Log upload failed; the archive stays local." >&2
+    return "$code"
+}
+
+collect_logs() { # stack dir exit-code started
+    local stack=$1 dir=$2 code=$3 kubeconfig=$RUNTIME/kubeconfig-$1.yaml installer=$RUNTIME/kubemarine/$1
+    local commit; commit=$(git rev-parse --short HEAD 2>/dev/null || echo unknown)
+    git diff --quiet HEAD 2>/dev/null || commit="$commit (with local changes)"
+    cat >"$dir/run/summary.txt" <<EOF
+stack:     $stack
+command:   $(cat "$dir/run/command.txt")
+exit code: $code
+started:   $4 UTC
+finished:  $(date -u +%Y%m%d-%H%M%S) UTC
+commit:    $commit
+EOF
+    # Each part is optional: what cannot be reached is noted in run/collect.log and skipped.
+    part() { # name command...
+        echo "== $1" >>"$dir/run/collect.log"
+        ("${@:2}") >>"$dir/run/collect.log" 2>&1 || echo "$1: not collected" >>"$dir/run/collect.log"
+    }
+    config_part() { mkdir -p "$dir/config"; atmos describe stacks -s "$stack" >"$dir/config/stack.yaml"; }
+    # Kubemarine inventory and dump (debug.log, finalized inventory); key files and kubeconfigs are left out.
+    installer_part() {
+        [[ -d $installer ]] || { echo "no $installer"; return 1; }
+        mkdir -p "$dir/kubemarine"
+        tar -C "$installer" --exclude='id_*' --exclude='*.key' --exclude='admin.conf' --exclude='kubeconfig*' -cf - . |
+            tar -C "$dir/kubemarine" -xf -
+    }
+    # Cluster state, events and container logs, one folder per namespace; needs the API (tunnel for VM stacks).
+    kubernetes_part() {
+        [[ -f $kubeconfig ]] || { echo "no $kubeconfig"; return 1; }
+        kubectl --kubeconfig "$kubeconfig" --request-timeout=10s get --raw=/readyz >/dev/null
+        mkdir -p "$dir/kubernetes"
+        kubectl --kubeconfig "$kubeconfig" get nodes,pods -A -o wide >"$dir/kubernetes/overview.txt" 2>&1 || true
+        kubectl --kubeconfig "$kubeconfig" cluster-info dump --all-namespaces --output-directory="$dir/kubernetes/dump" >/dev/null
+    }
+    # VM stacks while the jump host exists (after a failure it usually does): Nexus and node service logs.
+    vms_part() {
+        vm_context "$stack"; ssh_setup "$stack"
+        if [[ -n $NEXUS ]]; then
+            mkdir -p "$dir/nexus"
+            through_jump "$NEXUS" 'sudo systemctl status nexus --no-pager; sudo tail -n 5000 /opt/sonatype-work/nexus3/log/nexus.log' \
+                >"$dir/nexus/nexus.log" 2>&1 || true
+        fi
+        local name address
+        jq -r '.[] | .name + " " + .internal_address' <<<"${NODES:-[]}" | while read -r name address; do
+            mkdir -p "$dir/nodes"
+            through_jump "$address" 'sudo journalctl -u containerd -u kubelet --no-pager -n 3000' \
+                >"$dir/nodes/$name.log" 2>&1 </dev/null || true
+        done
+    }
+    part config config_part
+    part kubemarine installer_part
+    part kubernetes kubernetes_part
+    part vms vms_part
+}
+
+# LOGS_UPLOAD_URL picks the storage by its form (put it in secrets/STACK.yaml or a CI variable):
+#   s3://bucket/prefix                                       AWS S3 (or S3-compatible with AWS_ENDPOINT_URL_S3)
+#   https://ACCOUNT.blob.core.windows.net/CONTAINER/prefix?SAS  Azure Blob Storage, container SAS with write rights
+#   gs://bucket/prefix                                       Google Cloud Storage through its S3-compatible API,
+#                                                            HMAC key in LOGS_GCS_HMAC_ACCESS_ID / LOGS_GCS_HMAC_SECRET
+upload_logs() {
+    local file=$1 url=${LOGS_UPLOAD_URL:-} name; name=$(basename "$1")
+    [[ -n $url ]] || return 0
+    url=${url%/}
+    case $url in
+        s3://*) aws s3 cp --no-progress "$file" "$url/$name" >/dev/null ;;
+        gs://*)
+            [[ -n ${LOGS_GCS_HMAC_ACCESS_ID:-} && -n ${LOGS_GCS_HMAC_SECRET:-} ]] ||
+                { echo 'gs:// needs LOGS_GCS_HMAC_ACCESS_ID and LOGS_GCS_HMAC_SECRET' >&2; return 1; }
+            # GCS rejects the checksum trailers that recent AWS CLI versions send by default.
+            env -u AWS_SESSION_TOKEN -u AWS_PROFILE \
+                AWS_ACCESS_KEY_ID="$LOGS_GCS_HMAC_ACCESS_ID" AWS_SECRET_ACCESS_KEY="$LOGS_GCS_HMAC_SECRET" \
+                AWS_REQUEST_CHECKSUM_CALCULATION=when_required AWS_RESPONSE_CHECKSUM_VALIDATION=when_required \
+                aws s3 cp --no-progress --endpoint-url https://storage.googleapis.com --region auto \
+                "$file" "s3://${url#gs://}/$name" >/dev/null ;;
+        https://*.blob.core.windows.net/*\?*)
+            curl -fsS -X PUT -H 'x-ms-blob-type: BlockBlob' -T "$file" "${url%%\?*}/$name?${url#*\?}" >/dev/null ;;
+        *) echo 'Unsupported LOGS_UPLOAD_URL: s3://..., gs://..., or an Azure Blob container URL with SAS' >&2; return 1 ;;
+    esac || return
+    echo "Logs uploaded: ${url%%\?*}/$name"
+}
+
 cmd_check() {
     local init=false render=false stack=customer1-aws-staging
     while (($#)); do
@@ -412,6 +527,7 @@ case ${1:-} in
     nexus-load) cmd_nexus_load "${2:-}" ;;
     prepare-vms) cmd_prepare_vms "${2:-}" ;;
     ssh) shift; cmd_ssh "$@" ;;
+    run) shift; cmd_run "$@" ;;
     *) cat >&2 <<'EOF'
 Usage: local/lab.sh <command>
   start                  create the lab network, start Floci AWS and its UI, wait for health
@@ -430,6 +546,8 @@ VM installation (docs/vm-installation.md); SSH commands run as: local/lab.sh wit
   nexus-load STACK       create the Nexus repositories and upload the bundle (through the tunnel)
   prepare-vms STACK      after kubemarine: kubeconfig from the control plane, API through the tunnel
   ssh STACK ADDRESS [CMD] shell or command on a private VM through the jump host
+  run STACK CMD          run CMD (with secrets, if the stack has them), collect logs into one archive on success
+                         or failure: .local-runtime/logs/STACK-<time>-<ok|failed>.tar.gz; LOGS_UPLOAD_URL uploads it
 EOF
        exit 2 ;;
 esac
