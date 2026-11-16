@@ -8,7 +8,8 @@ locals {
     var.kubemarine,
     {
       node_defaults = merge(try(var.kubemarine.node_defaults, {}), { username = var.ssh_user, gateway = "jump" })
-      gateway_nodes = [{ name = "jump", address = var.jump_host.address, username = var.ssh_user }]
+      # null after close-access destroyed the jump host: destroy-vm must still evaluate (it never connects).
+      gateway_nodes = [{ name = "jump", address = try(var.jump_host.address, null), username = var.ssh_user }]
       nodes = [
         for node in var.nodes : {
           name             = node.name
