@@ -1,9 +1,9 @@
 # Isolated VM installation (docs/vm-installation.md). Every workflow needs the stack secrets (run = with-secrets + logs):
-#   local/lab.sh run customer1-aws-staging atmos workflow deploy-vm -f customers/customer1/kubemarine/aws
+#   local/lab.sh run customer1-aws-staging-kubemarine atmos workflow deploy-vm -f customers/customer1/kubemarine/aws
 workflows:
   deploy-vm:
     description: 'Deploy customer1 AWS VM stack: network, jump host, nodes, Nexus, Kubemarine, apps; closes access at the end'
-    stack: customer1-aws-staging
+    stack: customer1-aws-staging-kubemarine
     steps:
     - name: network
       command: terraform apply network -auto-approve
@@ -19,26 +19,26 @@ workflows:
       command: terraform apply kubemarine -auto-approve
     - name: access
       type: shell
-      command: bash ./local/lab.sh prepare-vms customer1-aws-staging
+      command: bash ./local/lab.sh prepare-vms customer1-aws-staging-kubemarine
     - name: apps
       command: workflow deploy-apps -f customers/customer1/kubemarine/aws
     - name: close-access
       command: workflow close-access -f customers/customer1/kubemarine/aws
   deploy-nexus:
     description: 'Internal branch: Nexus VM, Nexus from the bundle, bundle upload (all through the jump host)'
-    stack: customer1-aws-staging
+    stack: customer1-aws-staging-kubemarine
     steps:
     - name: nexus-vm
       command: terraform apply nexus -auto-approve
     - name: nexus-install
       type: shell
-      command: bash ./local/lab.sh nexus-install customer1-aws-staging
+      command: bash ./local/lab.sh nexus-install customer1-aws-staging-kubemarine
     - name: nexus-load
       type: shell
-      command: bash ./local/lab.sh nexus-load customer1-aws-staging
+      command: bash ./local/lab.sh nexus-load customer1-aws-staging-kubemarine
   deploy-apps:
     description: 'Install apps from Nexus through the tunnel (needs open-access)'
-    stack: customer1-aws-staging
+    stack: customer1-aws-staging-kubemarine
     steps:
     - name: istio
       command: helmfile apply istio
@@ -52,29 +52,29 @@ workflows:
       command: helmfile apply headlamp
   open-access:
     description: 'Create the jump host and the SOCKS tunnel through it'
-    stack: customer1-aws-staging
+    stack: customer1-aws-staging-kubemarine
     steps:
     - name: jump-host
       command: terraform apply jump-host -auto-approve
     - name: tunnel
       type: shell
-      command: bash ./local/lab.sh tunnel customer1-aws-staging
+      command: bash ./local/lab.sh tunnel customer1-aws-staging-kubemarine
   close-access:
     description: 'Stop the tunnel and destroy the jump host (MoM step 3); open-access brings it back'
-    stack: customer1-aws-staging
+    stack: customer1-aws-staging-kubemarine
     steps:
     - name: tunnel
       type: shell
-      command: bash ./local/lab.sh tunnel customer1-aws-staging stop
+      command: bash ./local/lab.sh tunnel customer1-aws-staging-kubemarine stop
     - name: jump-host
       command: terraform destroy jump-host -auto-approve
   destroy-vm:
     description: 'Destroy customer1 AWS VM stack (VMs with the cluster on them, then the network)'
-    stack: customer1-aws-staging
+    stack: customer1-aws-staging-kubemarine
     steps:
     - name: tunnel
       type: shell
-      command: bash ./local/lab.sh tunnel customer1-aws-staging stop
+      command: bash ./local/lab.sh tunnel customer1-aws-staging-kubemarine stop
     - name: kubemarine
       command: terraform destroy kubemarine -auto-approve
     - name: vms
